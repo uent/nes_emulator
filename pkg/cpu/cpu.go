@@ -45,7 +45,6 @@ func (c *CPU) Reset() {
 	c.P = 0
 	c.S = 0xFD
 	// Read reset vector at 0xFFFC and 0xFFFD
-	fmt.Println(c.Memory)
 	c.PC = c.Memory.ReadWord(0xFFFC)
 }
 
@@ -54,6 +53,8 @@ func (c *CPU) Step() int {
 	// Read opcode
 	opcode := c.Memory.Read(c.PC)
 	c.PC++
+
+	fmt.Printf("Executing opcode: %02X\n", opcode)
 
 	// TODO: Implement instruction decoding and execution
 	// Placeholder usage to avoid unused variable error

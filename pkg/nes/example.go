@@ -40,4 +40,6 @@ func RunExample(filePath string) {
 	// The memory system handles the appropriate memory mapping and mirroring
 
 	fmt.Println("\nNES system initialized successfully with memory system.")
+
+	nes.Run()
 }

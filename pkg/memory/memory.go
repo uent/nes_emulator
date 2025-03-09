@@ -1,8 +1,6 @@
 // Package memory implements the NES memory system
 package memory
 
-import "fmt"
-
 // Memory represents the memory system of the NES
 type Memory struct {
 	// RAM (2KB internal RAM, mirrored 4 times)
@@ -22,12 +20,12 @@ type Memory struct {
 func New() *Memory {
 	// Create a new memory instance
 	m := &Memory{}
-	
+
 	// Initialize RAM (addresses 0x0000 to 0x07FF) with zeros
 	for i := 0; i < 0x0800; i++ {
 		m.RAM[i] = 0
 	}
-	
+
 	return m
 }
 
@@ -53,7 +51,6 @@ func (m *Memory) Reset() {
 
 // Read returns a byte from the specified memory address
 func (m *Memory) Read(address uint16) byte {
-	fmt.Println("Read from address:", address)
 	switch {
 	case address < 0x2000:
 		// Internal RAM, mirrored every 0x0800 bytes
@@ -101,7 +98,6 @@ func (m *Memory) LoadPRGROM(prgROM []byte) {
 // ReadWord reads a 16-bit word from the specified memory address
 // NES is little-endian, so the first byte is the low byte
 func (m *Memory) ReadWord(address uint16) uint16 {
-	fmt.Println("ReadWord from address:", address)
 	low := uint16(m.Read(address))
 	high := uint16(m.Read(address + 1))
 	return (high << 8) | low
