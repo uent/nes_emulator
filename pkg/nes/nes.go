@@ -1,0 +1,62 @@
+// Package nes implements the main NES system
+package nes
+
+import (
+	"github.com/example/my-golang-project/pkg/apu"
+	"github.com/example/my-golang-project/pkg/cpu"
+	"github.com/example/my-golang-project/pkg/memory"
+	"github.com/example/my-golang-project/pkg/ppu"
+)
+
+// NES represents the Nintendo Entertainment System
+type NES struct {
+	CPU    *cpu.CPU
+	PPU    *ppu.PPU
+	APU    *apu.APU
+	Memory *memory.Memory
+}
+
+// New creates a new NES instance with all components initialized
+func New() *NES {
+	mem := memory.New()
+	
+	cpuInstance := cpu.NewCPU()
+	// Create a memory view for the CPU that only allows access to addresses 0x0000-0x07FF
+	cpuMemoryView := memory.NewMemoryView(mem, 0x0000, 0x07FF)
+	cpuInstance.SetMemory(cpuMemoryView)
+
+	nes := &NES{
+		CPU:    cpuInstance,
+		PPU:    ppu.NewPPU(),
+		APU:    apu.NewAPU(),
+		Memory: mem,
+	}
+
+	return nes
+}
+
+// Reset resets all components of the NES
+func (n *NES) Reset() {
+	n.Memory.Reset()
+	n.CPU.Reset()
+	n.PPU.Reset()
+	n.APU.Reset()
+}
+
+// LoadROM loads a ROM into the NES
+func (n *NES) LoadROM(prgROM []byte) {
+	n.Memory.LoadPRGROM(prgROM)
+}
+
+// Step advances the NES emulation by one step
+func (n *NES) Step() {
+	n.CPU.Step()
+
+	// PPU runs at 3x the speed of CPU
+	n.PPU.Step()
+	n.PPU.Step()
+	n.PPU.Step()
+
+	// APU step
+	n.APU.Step()
+}
