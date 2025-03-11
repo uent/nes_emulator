@@ -10,27 +10,26 @@ import (
 
 // NES represents the Nintendo Entertainment System
 type NES struct {
-	CPU    *cpu.CPU
-	PPU    *ppu.PPU
-	APU    *apu.APU
-	Memory *memory.Memory
+	CPU     *cpu.CPU
+	PPU     *ppu.PPU
+	APU     *apu.APU
+	Memory  *memory.Memory
 	running bool
 }
 
 // New creates a new NES instance with all components initialized
 func New() *NES {
 	mem := memory.New()
-	
+
 	cpuInstance := cpu.NewCPU()
-	// Create a memory view for the CPU that only allows access to addresses 0x0000-0x07FF
-	cpuMemoryView := memory.NewMemoryView(mem, 0x0000, 0x07FF)
-	cpuInstance.SetMemory(cpuMemoryView)
+	// Use the main memory system directly instead of a restricted view
+	cpuInstance.SetMemory(mem)
 
 	nes := &NES{
-		CPU:    cpuInstance,
-		PPU:    ppu.NewPPU(),
-		APU:    apu.NewAPU(),
-		Memory: mem,
+		CPU:     cpuInstance,
+		PPU:     ppu.NewPPU(),
+		APU:     apu.NewAPU(),
+		Memory:  mem,
 		running: false,
 	}
 

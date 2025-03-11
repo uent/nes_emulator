@@ -22,16 +22,16 @@ func RunExample(filePath string) {
 	// Create a new NES instance
 	nes := New()
 
-	// Reset the NES components
-	nes.Reset()
-
 	// Load the ROM data
 	nes.LoadROM(prgROM.Data)
 
+	// Reset the NES components
+	nes.Reset()
+
 	// Example of reading a value from memory
-	address := uint16(0x8000) // Typical starting address for PRG ROM
-	value := nes.Memory.Read(address)
-	fmt.Printf("\nValue at address 0x%04X: 0x%02X\n", address, value)
+	//address := uint16(0x8000) // Typical starting address for PRG ROM
+	//value := nes.Memory.Read(address)
+	//fmt.Printf("\nValue at address 0x%04X: 0x%02X\n", address, value)
 
 	// Set up the CPU to use our memory system
 	nes.CPU.SetMemory(nes.Memory)

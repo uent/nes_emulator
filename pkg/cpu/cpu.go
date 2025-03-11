@@ -1,7 +1,10 @@
 // Package cpu implements the NES CPU (6502) emulation
 package cpu
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 // CPU represents the 6502 processor of the NES
 type CPU struct {
@@ -45,20 +48,31 @@ func (c *CPU) Reset() {
 	c.P = 0
 	c.S = 0xFD
 	// Read reset vector at 0xFFFC and 0xFFFD
+	fmt.Printf("Reset vector: %04X\n", c.Memory.ReadWord(0xFFFC))
 	c.PC = c.Memory.ReadWord(0xFFFC)
 }
 
 // Step executes a single CPU instruction
 func (c *CPU) Step() int {
 	// Read opcode
+	fmt.Printf("PC: %02X\n", c.PC)
 	opcode := c.Memory.Read(c.PC)
 	c.PC++
 
-	fmt.Printf("Executing opcode: %02X\n", opcode)
+	instruction := GetInstruction(opcode)
+	fmt.Printf("Executing opcode: %02X (%s), PC: %02X\n", opcode, instruction.Mnemonic, c.PC)
 
-	// TODO: Implement instruction decoding and execution
-	// Placeholder usage to avoid unused variable error
-	_ = opcode
+	// Get the execution function for the instruction
+	executeFunc := GetInstructionFunc(opcode)
+	if executeFunc != nil {
+		executeFunc(c)
+	} else {
+		panic(fmt.Sprintf("Missing method for instruction opcode: %02X", opcode))
+		//fmt.Printf("Warning: No execution function for opcode %02X\n", opcode)
+	}
 
-	return 0 // Return cycles used
+	// Add sleep for debugging/visualization purposes
+	time.Sleep(1 * time.Second)
+
+	return instruction.Cycles // Return cycles used
 }
