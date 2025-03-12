@@ -49,6 +49,7 @@ func (c *CPU) Reset() {
 	c.S = 0xFD
 	// Read reset vector at 0xFFFC and 0xFFFD
 	fmt.Printf("Reset vector: %04X\n", c.Memory.ReadWord(0xFFFC))
+	//c.PC = 0xFFFC
 	c.PC = c.Memory.ReadWord(0xFFFC)
 }
 
@@ -57,7 +58,6 @@ func (c *CPU) Step() int {
 	// Read opcode
 	fmt.Printf("PC: %02X\n", c.PC)
 	opcode := c.Memory.Read(c.PC)
-	c.PC++
 
 	instruction := GetInstruction(opcode)
 	fmt.Printf("Executing opcode: %02X (%s), PC: %02X\n", opcode, instruction.Mnemonic, c.PC)
@@ -73,6 +73,8 @@ func (c *CPU) Step() int {
 
 	// Add sleep for debugging/visualization purposes
 	time.Sleep(1 * time.Second)
+
+	c.PC++
 
 	return instruction.Cycles // Return cycles used
 }

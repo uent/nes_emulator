@@ -21,8 +21,14 @@ const (
 	TestingMemorySize         = 0x0008
 	TestingMemoryStartAddress = APUAndIORegistersStartAddress + APUAndIORegistersSize
 
-	ROMMemorySize   = 0x1FE0 + 0x2000 + 0x8000 // rom: unmapped + ram + rom
-	ROMStartAddress = TestingMemoryStartAddress + TestingMemorySize
+	UnmappedCartridgeMemorySize   = 0x1FE0
+	UnmappedCartridgeStartAddress = TestingMemoryStartAddress + TestingMemorySize
+
+	RAMCartridgeMemorySize   = 0x2000
+	RAMCartridgeStartAddress = UnmappedCartridgeStartAddress + UnmappedCartridgeMemorySize
+
+	ROMCartridgeMemorySize   = 0x8000
+	ROMCartridgeStartAddress = RAMCartridgeStartAddress + RAMCartridgeMemorySize
 )
 
 // Memory represents the memory system of the NES
@@ -37,8 +43,13 @@ type Memory struct {
 	APUAndIORegisters [APUAndIORegistersSize]byte
 
 	// Cartridge space: PRG ROM, PRG RAM, and mapper registers
-	//CartridgeSpace [0xBFE0]byte
-	CartridgeSpace [ROMMemorySize]byte
+	UnmappedCartridgeSpace [UnmappedCartridgeMemorySize]byte
+
+	// Cartridge space: PRG ROM, PRG RAM, and mapper registers
+	RAMCartridgeSpace [RAMCartridgeMemorySize]byte
+
+	// Cartridge space: PRG ROM, PRG RAM, and mapper registers
+	ROMCartridgeSpace [ROMCartridgeMemorySize]byte
 }
 
 // New creates a new Memory instance
@@ -84,15 +95,18 @@ func (m *Memory) Read(address uint16) byte {
 		return m.RAM[address%RAMSize]
 	case address < APUAndIORegistersStartAddress: // 0x2000 - 0x3fff
 		// PPU registers, mirrored every 8 bytes
-		return m.PPURegisters[address%PPURegistersSize]
+		return m.PPURegisters[(0x2000-address)%PPURegistersSize]
 	case address < TestingMemoryStartAddress: // 0x4000 - 0x4017
 		// APU and I/O registers
 		return m.APUAndIORegisters[address-0x4000]
-	case address < ROMStartAddress: // 0x4018 - 0x401F
+	case address < UnmappedCartridgeStartAddress: // 0x4018 - 0x401F
 		panic("testing memory space")
-	case address <= (ROMStartAddress + ROMMemorySize - 1): // 0x4020 - 0xFFFF
-		// Cartridge space: PRG ROM, PRG RAM, and mapper registers
-		return m.CartridgeSpace[address-0x4020]
+	case address < RAMCartridgeStartAddress: // 0x4020 - 0xFFFF
+		panic("unmapped cartridge space")
+	case address < ROMCartridgeStartAddress: // 0x6000 - 0x7FFF
+		return m.RAMCartridgeSpace[address-0x6000]
+	case address < ROMCartridgeStartAddress+ROMCartridgeMemorySize-1: // 0x8000 - 0xFFFF
+		return m.ROMCartridgeSpace[address-0x8000]
 	default:
 		fmt.Printf("Invalid memory address: %x \n", address)
 		panic("Invalid memory address")
@@ -102,18 +116,26 @@ func (m *Memory) Read(address uint16) byte {
 // Write writes a byte to the specified memory address
 func (m *Memory) Write(address uint16, value byte) {
 	switch {
-	case address < 0x2000:
+	case address < PPURegistersStartAddress: // 0x0 - 0x1FFF
 		// Internal RAM, mirrored every 0x0800 bytes
-		m.RAM[address%0x0800] = value
-	case address < 0x4000:
+		m.RAM[address%RAMSize] = value
+	case address < APUAndIORegistersStartAddress: // 0x2000 - 0x3fff
 		// PPU registers, mirrored every 8 bytes
-		m.PPURegisters[(address-0x2000)%8] = value
-	case address < 0x4020:
+		m.PPURegisters[(0x2000-address)%PPURegistersSize] = value
+	case address < TestingMemoryStartAddress: // 0x4000 - 0x4017
 		// APU and I/O registers
 		m.APUAndIORegisters[address-0x4000] = value
+	case address < UnmappedCartridgeStartAddress: // 0x4018 - 0x401F
+		panic("testing memory space")
+	case address < RAMCartridgeStartAddress: // 0x4020 - 0xFFFF
+		panic("unmapped cartridge space")
+	case address < ROMCartridgeStartAddress: // 0x6000 - 0x7FFF
+		m.RAMCartridgeSpace[address-0x6000] = value
+	case address < ROMCartridgeStartAddress+ROMCartridgeMemorySize-1: // 0x8000 - 0xFFFF
+		m.ROMCartridgeSpace[address-0x8000] = value
 	default:
-		// Cartridge space: PRG ROM, PRG RAM, and mapper registers
-		m.CartridgeSpace[address-0x4020] = value
+		fmt.Printf("Invalid memory address: %x \n", address)
+		panic("Invalid memory address")
 	}
 }
 
@@ -122,8 +144,8 @@ func (m *Memory) LoadPRGROM(prgROM []byte) {
 	// Copy PRG ROM data into the appropriate location in cartridge space
 	// Typically starting at 0x8000, but this is a simplification
 	// In a real implementation, this would depend on the mapper
-	for i := 0; i < len(prgROM) && i < len(m.CartridgeSpace); i++ {
-		m.CartridgeSpace[i] = prgROM[i]
+	for i := 0; i < len(prgROM) && i < len(m.ROMCartridgeSpace); i++ {
+		m.ROMCartridgeSpace[i] = prgROM[i]
 	}
 }
 
