@@ -41,5 +41,7 @@ func RunExample(filePath string) {
 
 	fmt.Println("\nNES system initialized successfully with memory system.")
 
-	nes.Run()
+	if err := nes.Run(); err != nil {
+		fmt.Printf("Error during NES execution: %v\n", err)
+	}
 }

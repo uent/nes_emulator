@@ -65,7 +65,7 @@ func (c *CPU) GetInstruction(opcode byte) Instruction {
 }
 
 // Step executes a single CPU instruction
-func (c *CPU) Step() uint8 {
+func (c *CPU) Step() (uint8, error) {
 	// Read opcode
 	var cycles uint8
 	fmt.Printf("PC: %02X\n", c.PC)
@@ -79,15 +79,14 @@ func (c *CPU) Step() uint8 {
 	if executeFunc != nil {
 		cycles = executeFunc(c)
 	} else {
-		panic(fmt.Sprintf("Missing method for instruction opcode: %02X", opcode))
-		//fmt.Printf("Warning: No execution function for opcode %02X\n", opcode)
+		return 0, fmt.Errorf("missing method for instruction opcode: %02X", opcode)
 	}
 
 	// Add sleep for debugging/visualization purposes
 	time.Sleep(1 * time.Second)
 
-	c.PC++
+	//c.PC++
 	//c.PC = c.PC + 2
 
-	return cycles // Return cycles used
+	return cycles, nil // Return cycles used and no error
 }

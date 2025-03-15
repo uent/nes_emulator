@@ -3,6 +3,7 @@ package debug
 
 import (
 	"fmt"
+	"image"
 	"image/color"
 
 	//"strconv"
@@ -31,6 +32,8 @@ type CPUDebugger struct {
 	nextStep    bool
 	disassembly []string
 	cycleCount  int
+	errorMsg    string
+	hasError    bool
 }
 
 // NewCPUDebugger creates a new CPU debugger UI
@@ -42,6 +45,8 @@ func NewCPUDebugger(nes *nes.NES) *CPUDebugger {
 		nextStep:    false,
 		disassembly: make([]string, 0),
 		cycleCount:  0,
+		errorMsg:    "",
+		hasError:    false,
 	}
 }
 
@@ -58,22 +63,41 @@ func (d *CPUDebugger) Update() error {
 		d.nextStep = true
 	}
 
+	// Clear error if Escape key is pressed
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) && d.hasError {
+		d.hasError = false
+		d.errorMsg = ""
+		d.paused = true
+	}
+
 	// Step the NES if running or in step mode with next step requested
-	if (!d.paused || (d.stepMode && d.nextStep)) && d.nes != nil {
-		d.nes.Step()
-		d.cycleCount++
-		d.nextStep = false
+	if (!d.paused || (d.stepMode && d.nextStep)) && d.nes != nil && !d.hasError {
+		err := d.nes.Step()
+		if err != nil {
+			d.hasError = true
+			d.errorMsg = fmt.Sprintf("CPU Error: %v", err)
+			d.paused = true
+			// Add error to disassembly log
+			errorLog := fmt.Sprintf("ERROR: %v", err)
+			d.disassembly = append(d.disassembly, errorLog)
+			if len(d.disassembly) > 20 {
+				d.disassembly = d.disassembly[len(d.disassembly)-20:]
+			}
+		} else {
+			d.cycleCount++
+			d.nextStep = false
 
-		// Capture current instruction for disassembly
-		cpu := d.nes.CPU
-		opcode := d.nes.Memory.Read(cpu.PC)
-		instruction := cpu.GetInstruction(opcode)
+			// Capture current instruction for disassembly
+			cpu := d.nes.CPU
+			opcode := d.nes.Memory.Read(cpu.PC)
+			instruction := cpu.GetInstruction(opcode)
 
-		// Add to disassembly log (keeping only last 20 instructions)
-		disasm := fmt.Sprintf("%04X: %02X %s", cpu.PC, opcode, instruction.Mnemonic)
-		d.disassembly = append(d.disassembly, disasm)
-		if len(d.disassembly) > 20 {
-			d.disassembly = d.disassembly[len(d.disassembly)-20:]
+			// Add to disassembly log (keeping only last 20 instructions)
+			disasm := fmt.Sprintf("%04X: %02X %s", cpu.PC, opcode, instruction.Mnemonic)
+			d.disassembly = append(d.disassembly, disasm)
+			if len(d.disassembly) > 20 {
+				d.disassembly = d.disassembly[len(d.disassembly)-20:]
+			}
 		}
 	}
 
@@ -170,8 +194,8 @@ func (d *CPUDebugger) Draw(screen *ebiten.Image) {
 
 	cols := 4
 	rows := 16
-
 	for row := 0; row < rows; row++ {
+		line := ""
 		for col := 0; col < cols; col++ {
 			addr := uint16(row*cols + col + start_position*64)
 			val := d.nes.Memory.Read(addr)
@@ -182,6 +206,7 @@ func (d *CPUDebugger) Draw(screen *ebiten.Image) {
 			}
 			text.Draw(screen, fmt.Sprintf("$%02X:%02X ", addr, val), face, x+(col*80), y, textColor)
 		}
+		text.Draw(screen, line, face, x, y, color.White)
 		y += lineHeight
 	}
 
@@ -200,8 +225,27 @@ func (d *CPUDebugger) Draw(screen *ebiten.Image) {
 		}
 	}
 
+	// Show error message if there is an error
+	if d.hasError {
+		errorY := screenHeight - padding*3
+		errBox := image.Rect(padding, errorY-lineHeight, screenWidth-padding, errorY+lineHeight*2)
+		ebitenutil.DrawRect(screen, float64(errBox.Min.X), float64(errBox.Min.Y),
+			float64(errBox.Dx()), float64(errBox.Dy()),
+			color.RGBA{255, 0, 0, 100})
+
+		text.Draw(screen, d.errorMsg, face, padding*2, errorY, color.RGBA{255, 255, 255, 255})
+		text.Draw(screen, "Press ESC to clear the error and continue debugging",
+			face, padding*2, errorY+lineHeight, color.RGBA{255, 255, 255, 255})
+	}
+
 	// Draw debug controls help
-	ebitenutil.DebugPrintAt(screen, "Controls: SPACE to toggle pause, S to step", padding, screenHeight-padding)
+	var controlsText string
+	if d.hasError {
+		controlsText = "Controls: SPACE to toggle pause, S to step, ESC to clear errors"
+	} else {
+		controlsText = "Controls: SPACE to toggle pause, S to step"
+	}
+	ebitenutil.DebugPrintAt(screen, controlsText, padding, screenHeight-padding)
 }
 
 // formatFlags formats the processor status flags in a readable way
