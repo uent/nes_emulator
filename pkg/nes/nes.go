@@ -51,8 +51,11 @@ func (n *NES) LoadROM(prgROM []byte) {
 }
 
 // Step advances the NES emulation by one step
-func (n *NES) Step() {
-	n.CPU.Step()
+func (n *NES) Step() error {
+	_, err := n.CPU.Step()
+	if err != nil {
+		return err
+	}
 
 	// PPU runs at 3x the speed of CPU
 	n.PPU.Step()
@@ -61,23 +64,31 @@ func (n *NES) Step() {
 
 	// APU step
 	n.APU.Step()
+
+	return nil
 }
 
 // Run starts the execution of the NES after reset and ROM loading
-// It will continuously execute instructions until Stop is called
-func (n *NES) Run() {
+// It will continuously execute instructions until Stop is called or an error occurs
+func (n *NES) Run() error {
 	n.running = true
 	for n.running {
-		n.Step()
+		if err := n.Step(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // RunFor executes the NES for a specified number of cycles
 // Useful for testing or when precise control is needed
-func (n *NES) RunFor(cycles int) {
-	for i := 0; i < cycles; i++ {
-		n.Step()
+func (n *NES) RunFor(cycles int) error {
+	for i := 0; i < cycles && n.running; i++ {
+		if err := n.Step(); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // Stop halts the execution of the NES

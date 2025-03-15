@@ -34,6 +34,7 @@ type CPUDebugger struct {
 	cycleCount  int
 	errorMsg    string
 	hasError    bool
+	displayIdx  int // Index to track where to start displaying disassembly
 }
 
 // NewCPUDebugger creates a new CPU debugger UI
@@ -47,6 +48,7 @@ func NewCPUDebugger(nes *nes.NES) *CPUDebugger {
 		cycleCount:  0,
 		errorMsg:    "",
 		hasError:    false,
+		displayIdx:  0,
 	}
 }
 
@@ -61,6 +63,22 @@ func (d *CPUDebugger) Update() error {
 	// S key steps forward when in step mode
 	if d.stepMode && inpututil.IsKeyJustPressed(ebiten.KeyS) {
 		d.nextStep = true
+	}
+
+	// Add arrow keys for scrolling through disassembly history
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) {
+		if d.displayIdx > 0 {
+			d.displayIdx--
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyDown) {
+		if d.displayIdx < len(d.disassembly)-1 {
+			d.displayIdx++
+		}
+	}
+	// Reset display index to show most recent instructions
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
+		d.displayIdx = 0
 	}
 
 	// Clear error if Escape key is pressed
@@ -80,9 +98,7 @@ func (d *CPUDebugger) Update() error {
 			// Add error to disassembly log
 			errorLog := fmt.Sprintf("ERROR: %v", err)
 			d.disassembly = append(d.disassembly, errorLog)
-			if len(d.disassembly) > 20 {
-				d.disassembly = d.disassembly[len(d.disassembly)-20:]
-			}
+			// Keep all history for scrolling
 		} else {
 			d.cycleCount++
 			d.nextStep = false
@@ -92,12 +108,12 @@ func (d *CPUDebugger) Update() error {
 			opcode := d.nes.Memory.Read(cpu.PC)
 			instruction := cpu.GetInstruction(opcode)
 
-			// Add to disassembly log (keeping only last 20 instructions)
+			// Add to disassembly log (keeping full history)
 			disasm := fmt.Sprintf("%04X: %02X %s", cpu.PC, opcode, instruction.Mnemonic)
 			d.disassembly = append(d.disassembly, disasm)
-			if len(d.disassembly) > 20 {
-				d.disassembly = d.disassembly[len(d.disassembly)-20:]
-			}
+			
+			// Clear display index to show most recent instructions
+			d.displayIdx = 0
 		}
 	}
 
@@ -167,17 +183,47 @@ func (d *CPUDebugger) Draw(screen *ebiten.Image) {
 
 	// Current and next instructions
 	y += 2 * lineHeight
-	text.Draw(screen, "Disassembly:", face, padding, y, color.RGBA{100, 200, 255, 255})
+	
+	// Display scroll indicators if needed
+	var disasmTitle string
+	if d.displayIdx > 0 {
+		disasmTitle = "Disassembly: [Scroll ↑] (R to reset)"
+	} else if len(d.disassembly) > 12 {
+		disasmTitle = "Disassembly: [Scroll ↓]" 
+	} else {
+		disasmTitle = "Disassembly:"
+	}
+	text.Draw(screen, disasmTitle, face, padding, y, color.RGBA{100, 200, 255, 255})
 
-	// Draw disassembly
+	// Draw disassembly - show maximum 12 instructions in view
 	y += lineHeight
-	for i, line := range d.disassembly {
+	maxInstructions := 12
+	
+	// Calculate start and end indices for display
+	startIdx := 0
+	if len(d.disassembly) > maxInstructions {
+		// If we have more than maxInstructions, use displayIdx
+		startIdx = len(d.disassembly) - maxInstructions - d.displayIdx
+		if startIdx < 0 {
+			startIdx = 0
+		}
+	}
+	
+	endIdx := startIdx + maxInstructions
+	if endIdx > len(d.disassembly) {
+		endIdx = len(d.disassembly)
+	}
+	
+	// Display instructions in the visible range
+	for i := startIdx; i < endIdx; i++ {
 		var textColor color.Color = color.White
-		// Highlight current instruction
-		if i == len(d.disassembly)-1 {
+		
+		// Highlight current/latest instruction
+		if i == len(d.disassembly)-1 && d.displayIdx == 0 {
 			textColor = color.RGBA{255, 255, 0, 255}
 		}
-		text.Draw(screen, line, face, padding, y, textColor)
+		
+		text.Draw(screen, d.disassembly[i], face, padding, y, textColor)
 		y += lineHeight
 	}
 
@@ -241,9 +287,9 @@ func (d *CPUDebugger) Draw(screen *ebiten.Image) {
 	// Draw debug controls help
 	var controlsText string
 	if d.hasError {
-		controlsText = "Controls: SPACE to toggle pause, S to step, ESC to clear errors"
+		controlsText = "Controls: SPACE to toggle pause, S to step, ↑/↓ to scroll disassembly, R to reset view, ESC to clear errors"
 	} else {
-		controlsText = "Controls: SPACE to toggle pause, S to step"
+		controlsText = "Controls: SPACE to toggle pause, S to step, ↑/↓ to scroll disassembly, R to reset view"
 	}
 	ebitenutil.DebugPrintAt(screen, controlsText, padding, screenHeight-padding)
 }
