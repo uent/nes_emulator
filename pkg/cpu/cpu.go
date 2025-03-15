@@ -59,6 +59,11 @@ func (c *CPU) Reset() {
 	fmt.Printf("Reset PC: %04X\n", c.PC)
 }
 
+// GetInstruction returns instruction information for the given opcode
+func (c *CPU) GetInstruction(opcode byte) Instruction {
+	return GetInstruction(opcode)
+}
+
 // Step executes a single CPU instruction
 func (c *CPU) Step() uint8 {
 	// Read opcode

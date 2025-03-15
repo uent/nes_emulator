@@ -13,12 +13,52 @@ const (
 	FlagN uint8 = 7 // Negative
 )
 
-// getFlag returns the value of a specific status flag
-func (c *CPU) getFlag(flag uint8) uint8 {
+// GetFlag returns the value of a specific status flag
+func (c *CPU) GetFlag(flag uint8) uint8 {
 	if c.P&(1<<flag) != 0 {
 		return 1
 	}
 	return 0
+}
+
+// GetFlagC returns the Carry flag value
+func (c *CPU) GetFlagC() uint8 {
+	return c.GetFlag(FlagC)
+}
+
+// GetFlagZ returns the Zero flag value
+func (c *CPU) GetFlagZ() uint8 {
+	return c.GetFlag(FlagZ)
+}
+
+// GetFlagI returns the Interrupt Disable flag value
+func (c *CPU) GetFlagI() uint8 {
+	return c.GetFlag(FlagI)
+}
+
+// GetFlagD returns the Decimal Mode flag value
+func (c *CPU) GetFlagD() uint8 {
+	return c.GetFlag(FlagD)
+}
+
+// GetFlagB returns the Break Command flag value
+func (c *CPU) GetFlagB() uint8 {
+	return c.GetFlag(FlagB)
+}
+
+// GetFlag5 returns the unused flag value (always 1)
+func (c *CPU) GetFlag5() uint8 {
+	return c.GetFlag(Flag5)
+}
+
+// GetFlagV returns the Overflow flag value
+func (c *CPU) GetFlagV() uint8 {
+	return c.GetFlag(FlagV)
+}
+
+// GetFlagN returns the Negative flag value
+func (c *CPU) GetFlagN() uint8 {
+	return c.GetFlag(FlagN)
 }
 
 // setFlag sets or clears a specific status flag
