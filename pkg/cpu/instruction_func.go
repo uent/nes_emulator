@@ -36,7 +36,7 @@ func LDAImmediate(c *CPU) uint8 {
 	c.setFlagZ(c.A)
 	c.setFlagN(c.A)
 
-	c.MovePC(2)
+	c.MovePC(2 - 1)
 	return 2 // cycles 2
 }
 
@@ -46,7 +46,7 @@ func LDAAbsoluteX(c *CPU) uint8 {
 	c.setFlagZ(c.A)
 	c.setFlagN(c.A)
 
-	c.MovePC(3)
+	c.MovePC(3 - 1)
 	return 4 // cycles 4 (+1 if page is crossed)
 }
 
@@ -74,7 +74,7 @@ func STA(c *CPU, address uint16) {
 
 func STAAbsolute(c *CPU) uint8 {
 	c.Memory.Write(AbsoluteMemoryDirection(c), c.A)
-	c.MovePC(3)
+	c.MovePC(3 - 1)
 
 	return 3 // cicles 3
 }
@@ -100,7 +100,7 @@ func PHA(c *CPU) {
 
 func PHAImplied(c *CPU) uint8 {
 	c.pushStack(c.A)
-	c.MovePC(1)
+	c.MovePC(1 - 1)
 	return 3 // cycles 3
 }
 
@@ -130,7 +130,7 @@ func PLP(c *CPU) {
 // not tested
 func ADC(c *CPU, address uint16) {
 	value := c.Memory.Read(address)
-	result := uint16(c.A) + uint16(value) + uint16(c.getFlag(FlagC))
+	result := uint16(c.A) + uint16(value) + uint16(c.GetFlag(FlagC))
 
 	// Set carry flag
 	c.setFlag(FlagC, result > 0xFF)
@@ -149,7 +149,7 @@ func ADC(c *CPU, address uint16) {
 // not tested
 func SBC(c *CPU, address uint16) {
 	value := c.Memory.Read(address)
-	result := uint16(c.A) - uint16(value) - uint16(1-c.getFlag(FlagC))
+	result := uint16(c.A) - uint16(value) - uint16(1-c.GetFlag(FlagC))
 
 	// Set carry flag (note: inverted logic compared to ADC)
 	c.setFlag(FlagC, result < 0x100)
@@ -288,13 +288,13 @@ func ROL(c *CPU, address uint16, accumulator bool) {
 	var value uint8
 	if accumulator {
 		value = c.A
-		oldCarry := c.getFlag(FlagC)
+		oldCarry := c.GetFlag(FlagC)
 		c.setFlag(FlagC, (value&0x80) != 0)
 		value = (value << 1) | oldCarry
 		c.A = value
 	} else {
 		value = c.Memory.Read(address)
-		oldCarry := c.getFlag(FlagC)
+		oldCarry := c.GetFlag(FlagC)
 		c.setFlag(FlagC, (value&0x80) != 0)
 		value = (value << 1) | oldCarry
 		c.Memory.Write(address, value)
@@ -309,13 +309,13 @@ func ROR(c *CPU, address uint16, accumulator bool) {
 	var value uint8
 	if accumulator {
 		value = c.A
-		oldCarry := c.getFlag(FlagC)
+		oldCarry := c.GetFlag(FlagC)
 		c.setFlag(FlagC, (value&0x01) != 0)
 		value = (value >> 1) | (oldCarry << 7)
 		c.A = value
 	} else {
 		value = c.Memory.Read(address)
-		oldCarry := c.getFlag(FlagC)
+		oldCarry := c.GetFlag(FlagC)
 		c.setFlag(FlagC, (value&0x01) != 0)
 		value = (value >> 1) | (oldCarry << 7)
 		c.Memory.Write(address, value)
@@ -361,7 +361,7 @@ func CPY(c *CPU, address uint16) {
 // BCC - Branch if Carry Clear
 // not tested
 func BCC(c *CPU, offset int8) {
-	if c.getFlag(FlagC) == 0 {
+	if c.GetFlag(FlagC) == 0 {
 		c.MovePC(uint16(int32(offset)))
 	}
 }
@@ -369,7 +369,7 @@ func BCC(c *CPU, offset int8) {
 // BCS - Branch if Carry Set
 // not tested
 func BCS(c *CPU, offset int8) {
-	if c.getFlag(FlagC) == 1 {
+	if c.GetFlag(FlagC) == 1 {
 		c.MovePC(uint16(int32(offset)))
 	}
 }
@@ -377,7 +377,7 @@ func BCS(c *CPU, offset int8) {
 // BEQ - Branch if Equal (Z=1)
 // not tested
 func BEQ(c *CPU, offset int8) {
-	if c.getFlag(FlagZ) == 1 {
+	if c.GetFlag(FlagZ) == 1 {
 		c.MovePC(uint16(int32(offset)))
 	}
 }
@@ -391,20 +391,20 @@ func BITZero(c *CPU) uint8 {
 	c.setFlagN(memory_value)
 	c.setFlagV(memory_value)
 
-	c.MovePC(2)
+	c.MovePC(2 - 1)
 	return 3 // cycles 3
 }
 
 // BNE - Branch if Not Equal (Z=0)
 func BNE(c *CPU, offset int8) {
-	if c.getFlag(FlagZ) == 0 {
+	if c.GetFlag(FlagZ) == 0 {
 		c.MovePC(uint16(int32(offset)))
 	}
 }
 
 // BMI - Branch if Minus (N=1)
 func BMI(c *CPU, offset int8) {
-	if c.getFlag(FlagN) == 1 {
+	if c.GetFlag(FlagN) == 1 {
 		c.MovePC(uint16(int32(offset)))
 	}
 }
@@ -412,7 +412,7 @@ func BMI(c *CPU, offset int8) {
 // BPL - Branch if Plus (N=0)
 // not tested
 func BPL(c *CPU, offset int8) {
-	if c.getFlag(FlagN) == 0 {
+	if c.GetFlag(FlagN) == 0 {
 		c.MovePC(uint16(int32(offset)))
 	}
 }
@@ -420,7 +420,7 @@ func BPL(c *CPU, offset int8) {
 // BVC - Branch if Overflow Clear
 // not tested
 func BVC(c *CPU, offset int8) {
-	if c.getFlag(FlagV) == 0 {
+	if c.GetFlag(FlagV) == 0 {
 		c.MovePC(uint16(int32(offset)))
 	}
 }
@@ -428,7 +428,7 @@ func BVC(c *CPU, offset int8) {
 // BVS - Branch if Overflow Set
 // not tested
 func BVS(c *CPU, offset int8) {
-	if c.getFlag(FlagV) == 1 {
+	if c.GetFlag(FlagV) == 1 {
 		c.MovePC(uint16(int32(offset)))
 	}
 }
@@ -520,7 +520,7 @@ func SEI(c *CPU) {
 func SEIImplied(c *CPU) uint8 {
 	c.setFlagI(true, true)
 
-	c.MovePC(1)
+	c.MovePC(1 - 1)
 	return 2 // cycles 2
 }
 
