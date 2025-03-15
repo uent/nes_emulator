@@ -13,7 +13,7 @@ type CPU struct {
 	X  uint8  // X index register
 	Y  uint8  // Y index register
 	P  uint8  // Processor status
-	S  uint8  // Stack pointer
+	SP uint8  // Stack pointer
 	PC uint16 // Program counter
 
 	// Memory interface
@@ -40,22 +40,29 @@ func (c *CPU) SetMemory(memory interface {
 	c.Memory = memory
 }
 
+func (c *CPU) MovePC(offset uint16) {
+	c.PC = c.PC + offset
+}
+
 // Reset resets the CPU to its initial state
 func (c *CPU) Reset() {
 	c.A = 0
 	c.X = 0
 	c.Y = 0
-	c.P = 0
-	c.S = 0xFD
+	c.P = 0x24  //TODO: check
+	c.SP = 0xFD // TODO: check
 	// Read reset vector at 0xFFFC and 0xFFFD
 	fmt.Printf("Reset vector: %04X\n", c.Memory.ReadWord(0xFFFC))
 	//c.PC = 0xFFFC
+	//resetAddress := c.Memory.ReadWord(0xFFFC)
 	c.PC = c.Memory.ReadWord(0xFFFC)
+	fmt.Printf("Reset PC: %04X\n", c.PC)
 }
 
 // Step executes a single CPU instruction
-func (c *CPU) Step() int {
+func (c *CPU) Step() uint8 {
 	// Read opcode
+	var cycles uint8
 	fmt.Printf("PC: %02X\n", c.PC)
 	opcode := c.Memory.Read(c.PC)
 
@@ -65,7 +72,7 @@ func (c *CPU) Step() int {
 	// Get the execution function for the instruction
 	executeFunc := GetInstructionFunc(opcode)
 	if executeFunc != nil {
-		executeFunc(c)
+		cycles = executeFunc(c)
 	} else {
 		panic(fmt.Sprintf("Missing method for instruction opcode: %02X", opcode))
 		//fmt.Printf("Warning: No execution function for opcode %02X\n", opcode)
@@ -75,6 +82,7 @@ func (c *CPU) Step() int {
 	time.Sleep(1 * time.Second)
 
 	c.PC++
+	//c.PC = c.PC + 2
 
-	return instruction.Cycles // Return cycles used
+	return cycles // Return cycles used
 }

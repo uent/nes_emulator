@@ -6,7 +6,9 @@ import (
 
 func main() {
 	//filePath := "roms/Legend of Zelda, The (USA) (Rev A).nes"
-	filePath := "roms/official_only.nes"
+
+	filePath := "roms/test_cpu_exec_space_apu.nes"
+	//filePath := "roms/official_only.nes"
 
 	// Run the example that demonstrates the memory system
 	nes.RunExample(filePath)
