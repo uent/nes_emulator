@@ -7,14 +7,16 @@ type CPUOperation func(*CPU) uint8
 
 // LDA - Load Accumulator
 // not tested
-func LDA(c *CPU, address uint16) {
-	c.A = c.Memory.Read(address)
+func LDA(c *CPU, value uint8) {
+	c.A = value
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
 }
 
 func LDAImmediate(c *CPU) uint8 {
-	c.A = Immediate(c)
+	value := Immediate(c)
+
+	LDA(c, value)
 
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
@@ -24,7 +26,9 @@ func LDAImmediate(c *CPU) uint8 {
 }
 
 func LDAAbsolute(c *CPU) uint8 {
-	c.A = c.Memory.Read(AbsoluteMemoryDirection(c))
+	value := c.Memory.Read(AbsoluteMemoryDirection(c))
+
+	LDA(c, value)
 
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
@@ -34,7 +38,9 @@ func LDAAbsolute(c *CPU) uint8 {
 }
 
 func LDAAbsoluteX(c *CPU) uint8 {
-	c.A = c.Memory.Read(AbsoluteXMemoryDirection(c))
+	value := c.Memory.Read(AbsoluteXMemoryDirection(c))
+
+	LDA(c, value)
 
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
@@ -45,11 +51,11 @@ func LDAAbsoluteX(c *CPU) uint8 {
 
 // LDX - Load X Register
 // not tested
-func LDX(c *CPU, address uint16) {
+/* func LDX(c *CPU, address uint16) {
 	c.X = c.Memory.Read(address)
 	c.setFlagZByValue(c.X)
 	c.setFlagNByValue(c.X)
-}
+} */
 
 func LDXImmediate(c *CPU) uint8 {
 	c.X = Immediate(c)
@@ -64,11 +70,11 @@ func LDXImmediate(c *CPU) uint8 {
 
 // LDY - Load Y Register
 // not tested
-func LDY(c *CPU, address uint16) {
+/* func LDY(c *CPU, address uint16) {
 	c.Y = c.Memory.Read(address)
 	c.setFlagZByValue(c.Y)
 	c.setFlagNByValue(c.Y)
-}
+} */
 
 // STA - Store Accumulator
 func STA(c *CPU, address uint16) {
@@ -96,22 +102,22 @@ func STAAbsoluteX(c *CPU) uint8 {
 
 // STX - Store X Register
 // not tested
-func STX(c *CPU, address uint16) {
+/* func STX(c *CPU, address uint16) {
 	c.Memory.Write(address, c.X)
-}
+} */
 
 // STY - Store Y Register
 // not tested
-func STY(c *CPU, address uint16) {
+/* func STY(c *CPU, address uint16) {
 	c.Memory.Write(address, c.Y)
-}
+} */
 
 // Instructions for stack operations
 
 // PHA - Push Accumulator
-func PHA(c *CPU) {
+/* func PHA(c *CPU) {
 	c.pushStack(c.A)
-}
+} */
 
 func PHAImplied(c *CPU) uint8 {
 	c.pushStack(c.A)
@@ -121,23 +127,23 @@ func PHAImplied(c *CPU) uint8 {
 
 // PHP - Push Processor Status
 // not tested
-func PHP(c *CPU) {
+/* func PHP(c *CPU) {
 	c.pushStack(c.P | 0x10) // Set B flag when pushed
-}
+} */
 
 // PLA - Pull Accumulator
 // not tested
-func PLA(c *CPU) {
+/* func PLA(c *CPU) {
 	c.A = c.pullStack()
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-}
+} */
 
 // PLP - Pull Processor Status
 // not tested
-func PLP(c *CPU) {
+/* func PLP(c *CPU) {
 	c.P = (c.pullStack() & 0xEF) | 0x20 // Clear B flag, set bit 5
-}
+} */
 
 func PLPImplied(c *CPU) uint8 {
 	value := c.pullStack()
@@ -158,7 +164,7 @@ func PLPImplied(c *CPU) uint8 {
 
 // ADC - Add with Carry
 // not tested
-func ADC(c *CPU, address uint16) {
+/* func ADC(c *CPU, address uint16) {
 	value := c.Memory.Read(address)
 	result := uint16(c.A) + uint16(value) + uint16(c.GetFlag(FlagC))
 
@@ -173,7 +179,7 @@ func ADC(c *CPU, address uint16) {
 	c.A = uint8(result)
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-}
+} */
 
 func ADCZeroPageX(c *CPU) uint8 {
 	memoryValue := ZeroPageX(c)
@@ -200,7 +206,7 @@ func ADCZeroPageX(c *CPU) uint8 {
 
 // SBC - Subtract with Carry
 // not tested
-func SBC(c *CPU, address uint16) {
+/* func SBC(c *CPU, address uint16) {
 	value := c.Memory.Read(address)
 	result := uint16(c.A) - uint16(value) - uint16(1-c.GetFlag(FlagC))
 
@@ -215,18 +221,18 @@ func SBC(c *CPU, address uint16) {
 	c.A = uint8(result)
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-}
+} */
 
 // Instructions for increments and decrements
 
 // INC - Increment Memory
 // not tested
-func INC(c *CPU, address uint16) {
+/* func INC(c *CPU, address uint16) {
 	value := c.Memory.Read(address) + 1
 	c.Memory.Write(address, value)
 	c.setFlagZByValue(value)
 	c.setFlagNByValue(value)
-}
+} */
 
 // INX - Increment X Register
 func INXImplied(c *CPU) uint8 {
@@ -242,45 +248,45 @@ func INXImplied(c *CPU) uint8 {
 
 // INY - Increment Y Register
 // not tested
-func INY(c *CPU) {
+/* func INY(c *CPU) {
 	c.Y++
 	c.setFlagZByValue(c.Y)
 	c.setFlagNByValue(c.Y)
-}
+} */
 
 // DEC - Decrement Memory
 // not tested
-func DEC(c *CPU, address uint16) {
+/* func DEC(c *CPU, address uint16) {
 	value := c.Memory.Read(address) - 1
 	c.Memory.Write(address, value)
 	c.setFlagZByValue(value)
 	c.setFlagNByValue(value)
-}
+} */
 
 // DEX - Decrement X Register
 // not tested
-func DEX(c *CPU) {
+/* func DEX(c *CPU) {
 	c.X--
 	c.setFlagZByValue(c.X)
 	c.setFlagNByValue(c.X)
-}
+} */
 
 // DEY - Decrement Y Register
 // not tested
-func DEY(c *CPU) {
+/* func DEY(c *CPU) {
 	c.Y--
 	c.setFlagZByValue(c.Y)
 	c.setFlagNByValue(c.Y)
-}
+} */
 
 // Instructions for logical operations
 
 // AND - Logical AND
-func AND(c *CPU, address uint16) {
+/* func AND(c *CPU, address uint16) {
 	c.A &= c.Memory.Read(address)
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-}
+} */
 
 func ANDImmediate(c *CPU) uint8 {
 	value := Immediate(c)
@@ -296,25 +302,25 @@ func ANDImmediate(c *CPU) uint8 {
 
 // ORA - Logical OR
 // not tested
-func ORA(c *CPU, address uint16) {
+/* func ORA(c *CPU, address uint16) {
 	c.A |= c.Memory.Read(address)
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-}
+} */
 
 // EOR - Exclusive OR
 // not tested
-func EOR(c *CPU, address uint16) {
+/* func EOR(c *CPU, address uint16) {
 	c.A ^= c.Memory.Read(address)
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-}
+} */
 
 // Instructions for shifts and rotates
 
 // ASL - Arithmetic Shift Left
 // not tested
-func ASL(c *CPU, address uint16, accumulator bool) {
+/* func ASL(c *CPU, address uint16, accumulator bool) {
 	var value uint8
 	if accumulator {
 		value = c.A
@@ -329,11 +335,11 @@ func ASL(c *CPU, address uint16, accumulator bool) {
 	}
 	c.setFlagZByValue(value)
 	c.setFlagNByValue(value)
-}
+} */
 
 // LSR - Logical Shift Right
 // not tested
-func LSR(c *CPU, address uint16, accumulator bool) {
+/* func LSR(c *CPU, address uint16, accumulator bool) {
 	var value uint8
 	if accumulator {
 		value = c.A
@@ -348,7 +354,7 @@ func LSR(c *CPU, address uint16, accumulator bool) {
 	}
 	c.setFlagZByValue(value)
 	c.setFlagNByValue(value)
-}
+} */
 
 func LSRAccumulator(c *CPU) uint8 {
 	off_bit := c.A & 0x01
@@ -365,7 +371,7 @@ func LSRAccumulator(c *CPU) uint8 {
 
 // ROL - Rotate Left
 // not tested
-func ROL(c *CPU, address uint16, accumulator bool) {
+/* func ROL(c *CPU, address uint16, accumulator bool) {
 	var value uint8
 	if accumulator {
 		value = c.A
@@ -382,11 +388,11 @@ func ROL(c *CPU, address uint16, accumulator bool) {
 	}
 	c.setFlagZByValue(value)
 	c.setFlagNByValue(value)
-}
+} */
 
 // ROR - Rotate Right
 // not tested
-func ROR(c *CPU, address uint16, accumulator bool) {
+/* func ROR(c *CPU, address uint16, accumulator bool) {
 	var value uint8
 	if accumulator {
 		value = c.A
@@ -403,29 +409,29 @@ func ROR(c *CPU, address uint16, accumulator bool) {
 	}
 	c.setFlagZByValue(value)
 	c.setFlagNByValue(value)
-}
+} */
 
 // Instructions for comparisons
 
 // CMP - Compare Accumulator
 // not tested
-func CMP(c *CPU, address uint16) {
+/* func CMP(c *CPU, address uint16) {
 	value := c.Memory.Read(address)
 	result := c.A - value
 	c.setFlag(FlagC, c.A >= value)
 	c.setFlagZByValue(result)
 	c.setFlagNByValue(result)
-}
+} */
 
 // CPX - Compare X Register
 // not tested
-func CPX(c *CPU, address uint16) {
+/* func CPX(c *CPU, address uint16) {
 	value := c.Memory.Read(address)
 	result := c.X - value
 	c.setFlag(FlagC, c.X >= value)
 	c.setFlagZByValue(result)
 	c.setFlagNByValue(result)
-}
+} */
 
 func CPXZeroPage(c *CPU) uint8 {
 	value := ZeroPage(c)
@@ -443,39 +449,39 @@ func CPXZeroPage(c *CPU) uint8 {
 
 // CPY - Compare Y Register
 // not tested
-func CPY(c *CPU, address uint16) {
+/* func CPY(c *CPU, address uint16) {
 	value := c.Memory.Read(address)
 	result := c.Y - value
 	c.setFlag(FlagC, c.Y >= value)
 	c.setFlagZByValue(result)
 	c.setFlagNByValue(result)
-}
+} */
 
 // Instructions for branches
 
 // BCC - Branch if Carry Clear
 // not tested
-func BCC(c *CPU, offset int8) {
+/* func BCC(c *CPU, offset int8) {
 	if c.GetFlag(FlagC) == 0 {
 		c.MovePC(uint16(int32(offset)))
 	}
-}
+} */
 
 // BCS - Branch if Carry Set
 // not tested
-func BCS(c *CPU, offset int8) {
+/* func BCS(c *CPU, offset int8) {
 	if c.GetFlag(FlagC) == 1 {
 		c.MovePC(uint16(int32(offset)))
 	}
-}
+} */
 
 // BEQ - Branch if Equal (Z=1)
 // not tested
-func BEQ(c *CPU, offset int8) {
+/* func BEQ(c *CPU, offset int8) {
 	if c.GetFlag(FlagZ) == 1 {
 		c.MovePC(uint16(int32(offset)))
 	}
-}
+} */
 
 func BEQRelative(c *CPU) uint8 {
 	offSet := int16(int8(c.Memory.Read(c.PC + 1))) // Leer el offset como int8
@@ -536,35 +542,35 @@ func BNERelative(c *CPU) uint8 {
 }
 
 // BMI - Branch if Minus (N=1)
-func BMI(c *CPU, offset int8) {
+/* func BMI(c *CPU, offset int8) {
 	if c.GetFlag(FlagN) == 1 {
 		c.MovePC(uint16(int32(offset)))
 	}
-}
+} */
 
 // BPL - Branch if Plus (N=0)
 // not tested
-func BPL(c *CPU, offset int8) {
+/* func BPL(c *CPU, offset int8) {
 	if c.GetFlag(FlagN) == 0 {
 		c.MovePC(uint16(int32(offset)))
 	}
-}
+} */
 
 // BVC - Branch if Overflow Clear
 // not tested
-func BVC(c *CPU, offset int8) {
+/* func BVC(c *CPU, offset int8) {
 	if c.GetFlag(FlagV) == 0 {
 		c.MovePC(uint16(int32(offset)))
 	}
-}
+} */
 
 // BVS - Branch if Overflow Set
 // not tested
-func BVS(c *CPU, offset int8) {
+/* func BVS(c *CPU, offset int8) {
 	if c.GetFlag(FlagV) == 1 {
 		c.MovePC(uint16(int32(offset)))
 	}
-}
+} */
 
 // Instructions for jumps and subroutines
 
@@ -591,11 +597,11 @@ func JMPAbsolute(c *CPU) uint8 {
 
 // JSR - Jump to Subroutine
 // not tested
-func JSR(c *CPU, address uint16) {
+/* func JSR(c *CPU, address uint16) {
 	// Push return address (PC-1) to stack
 	c.pushStackWord(c.PC - 1)
 	c.MovePC(address - c.PC)
-}
+} */
 
 func JSRAbsolute(c *CPU) uint8 {
 	address := AbsoluteMemoryDirection(c)
@@ -608,32 +614,32 @@ func JSRAbsolute(c *CPU) uint8 {
 
 // RTS - Return from Subroutine
 // not tested
-func RTS(c *CPU) {
+/* func RTS(c *CPU) {
 	pulled := c.pullStackWord() + 1
 	c.MovePC(pulled - c.PC)
-}
+} */
 
 // RTI - Return from Interrupt
 // not tested
-func RTI(c *CPU) {
+/* func RTI(c *CPU) {
 	c.P = (c.pullStack() & 0xEF) | 0x20 // Clear B flag, set bit 5
 	pulled := c.pullStackWord()
 	c.MovePC(pulled - c.PC)
-}
+} */
 
 // Flag instructions
 
 // CLC - Clear Carry Flag
 // not tested
-func CLC(c *CPU) {
+/* func CLC(c *CPU) {
 	c.setFlag(FlagC, false)
-}
+} */
 
 // CLD - Clear Decimal Mode
 // not tested
-func CLD(c *CPU) {
+/* func CLD(c *CPU) {
 	c.setFlagD(false)
-}
+} */
 
 func CLDImplied(c *CPU) uint8 {
 	c.setFlagD(false)
@@ -645,33 +651,33 @@ func CLDImplied(c *CPU) uint8 {
 
 // CLI - Clear Interrupt Disable
 // not tested
-func CLI(c *CPU) {
+/* func CLI(c *CPU) {
 	c.setFlag(FlagI, false)
-}
+} */
 
 // CLV - Clear Overflow Flag
 // not tested
-func CLV(c *CPU) {
+/* func CLV(c *CPU) {
 	c.setFlag(FlagV, false)
-}
+} */
 
 // SEC - Set Carry Flag
 // not tested
-func SEC(c *CPU) {
+/* func SEC(c *CPU) {
 	c.setFlag(FlagC, true)
-}
+} */
 
 // SED - Set Decimal Flag
 // not tested
-func SED(c *CPU) {
+/* func SED(c *CPU) {
 	c.setFlag(FlagD, true)
-}
+} */
 
 // SEI - Set Interrupt Disable
 // not tested
-func SEI(c *CPU) {
+/* func SEI(c *CPU) {
 	c.setFlagI(true, true)
-}
+} */
 
 func SEIImplied(c *CPU) uint8 {
 	c.setFlagI(true, true)
@@ -696,9 +702,9 @@ func BRK(c *CPU) uint8 {
 
 // NOP - No Operation
 // not tested
-func NOP(c *CPU) {
+/* func NOP(c *CPU) {
 	// Do nothing
-}
+} */
 
 func NOPImplied(c *CPU) uint8 {
 	// Do nothing
@@ -712,11 +718,11 @@ func NOPImplied(c *CPU) uint8 {
 
 // TAX - Transfer A to X
 // not tested
-func TAX(c *CPU) {
+/* func TAX(c *CPU) {
 	c.X = c.A
 	c.setFlagZByValue(c.X)
 	c.setFlagNByValue(c.X)
-}
+} */
 
 func TAXImpplied(c *CPU) uint8 {
 	c.X = c.A
@@ -731,33 +737,33 @@ func TAXImpplied(c *CPU) uint8 {
 
 // TAY - Transfer A to Y
 // not tested
-func TAY(c *CPU) {
+/* func TAY(c *CPU) {
 	c.Y = c.A
 	c.setFlagZByValue(c.Y)
 	c.setFlagNByValue(c.Y)
-}
+} */
 
 // TSX - Transfer Stack Pointer to X
 // not tested
-func TSX(c *CPU) {
+/* func TSX(c *CPU) {
 	c.X = c.SP
 	c.setFlagZByValue(c.X)
 	c.setFlagNByValue(c.X)
-}
+} */
 
 // TXA - Transfer X to A
 // not tested
-func TXA(c *CPU) {
+/* func TXA(c *CPU) {
 	c.A = c.X
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-}
+} */
 
 // TXS - Transfer X to Stack Pointer
 // not tested
-func TXS(c *CPU) {
+/* func TXS(c *CPU) {
 	c.SP = c.X
-}
+} */
 
 func TXSImplied(c *CPU) uint8 {
 	c.SP = c.X
@@ -768,8 +774,8 @@ func TXSImplied(c *CPU) uint8 {
 
 // TYA - Transfer Y to A
 // not tested
-func TYA(c *CPU) {
+/* func TYA(c *CPU) {
 	c.A = c.Y
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-}
+} */
