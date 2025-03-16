@@ -22,6 +22,7 @@ type CPU struct {
 		Write(address uint16, value byte)
 		ReadWord(address uint16) uint16
 		WriteWord(address uint16, value uint16)
+		ReadAddressIndirectPageBoundaryBug(address uint16) uint16
 	}
 }
 
@@ -36,6 +37,7 @@ func (c *CPU) SetMemory(memory interface {
 	Write(address uint16, value byte)
 	ReadWord(address uint16) uint16
 	WriteWord(address uint16, value uint16)
+	ReadAddressIndirectPageBoundaryBug(address uint16) uint16
 }) {
 	c.Memory = memory
 }
@@ -83,7 +85,7 @@ func (c *CPU) Step() (uint8, error) {
 	}
 
 	// Add sleep for debugging/visualization purposes
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond)
 
 	//c.PC++
 	//c.PC = c.PC + 2

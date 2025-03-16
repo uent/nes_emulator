@@ -70,16 +70,36 @@ func (c *CPU) setFlag(flag uint8, value bool) {
 	}
 }
 
-func (c *CPU) setFlagZ(value uint8) {
-	c.setFlag(FlagZ, value == 0)
+func (c *CPU) setFlagZ(value bool) {
+	c.setFlag(FlagZ, value)
 }
 
-func (c *CPU) setFlagN(value uint8) {
-	c.setFlag(FlagN, value&0x80 != 0)
+func (c *CPU) setFlagZByValue(value uint8) {
+	c.setFlagZ(value == 0)
 }
 
-func (c *CPU) setFlagV(value uint8) {
-	c.setFlag(FlagV, value&0x40 != 0)
+func (c *CPU) setFlagC(value bool) {
+	c.setFlag(FlagC, value)
+}
+
+func (c *CPU) setFlagD(value bool) {
+	c.setFlag(FlagD, value)
+}
+
+func (c *CPU) setFlagN(value bool) {
+	c.setFlag(FlagN, value)
+}
+
+func (c *CPU) setFlagNByValue(value uint8) {
+	c.setFlagN(value&0x80 != 0)
+}
+
+func (c *CPU) setFlagV(value bool) {
+	c.setFlag(FlagV, value)
+}
+
+func (c *CPU) setFlagVByValue(value uint8) {
+	c.setFlagV(value&0x40 != 0)
 }
 
 func (c *CPU) setFlagI(value bool, delayed bool) {

@@ -68,7 +68,7 @@ var InstructionTable = map[byte]Instruction{
 	0x3E: {0x3E, "ROL", false, nil},
 
 	// PLP
-	0x28: {0x28, "PLP", false, nil},
+	0x28: {0x28, "PLP", false, PLPImplied},
 
 	// BMI
 	0x30: {0x30, "BMI", false, nil},
@@ -91,7 +91,7 @@ var InstructionTable = map[byte]Instruction{
 
 	// LSR
 	0x46: {0x46, "LSR", false, nil},
-	0x4A: {0x4A, "LSR", false, nil},
+	0x4A: {0x4A, "LSR", false, LSRAccumulator},
 	0x4E: {0x4E, "LSR", false, nil},
 	0x56: {0x56, "LSR", false, nil},
 	0x5E: {0x5E, "LSR", false, nil},
@@ -100,8 +100,8 @@ var InstructionTable = map[byte]Instruction{
 	0x48: {0x48, "PHA", false, PHAImplied},
 
 	// JMP
-	0x4C: {0x4C, "JMP", false, nil},
-	0x6C: {0x6C, "JMP", false, nil},
+	0x4C: {0x4C, "JMP", false, JMPAbsolute},
+	0x6C: {0x6C, "JMP", false, JMPIndirect},
 
 	// BVC
 	0x50: {0x50, "BVC", false, nil},
@@ -118,7 +118,7 @@ var InstructionTable = map[byte]Instruction{
 	0x69: {0x69, "ADC", false, nil},
 	0x6D: {0x6D, "ADC", false, nil},
 	0x71: {0x71, "ADC", false, nil},
-	0x75: {0x75, "ADC", false, nil},
+	0x75: {0x75, "ADC", false, ADCZeroPageX},
 	0x79: {0x79, "ADC", false, nil},
 	0x7D: {0x7D, "ADC", false, nil},
 
@@ -145,7 +145,7 @@ var InstructionTable = map[byte]Instruction{
 	0x91: {0x91, "STA", false, nil},
 	0x95: {0x95, "STA", false, nil},
 	0x99: {0x99, "STA", false, nil},
-	0x9D: {0x9D, "STA", false, nil},
+	0x9D: {0x9D, "STA", false, STAAbsoluteX},
 
 	// STY
 	0x84: {0x84, "STY", false, nil},
@@ -170,7 +170,7 @@ var InstructionTable = map[byte]Instruction{
 	0x98: {0x98, "TYA", false, nil},
 
 	// TXS
-	0x9A: {0x9A, "TXS", false, nil},
+	0x9A: {0x9A, "TXS", false, TXSImplied},
 
 	// LDY
 	0xA0: {0xA0, "LDY", false, nil},
@@ -190,7 +190,7 @@ var InstructionTable = map[byte]Instruction{
 	0xBD: {0xBD, "LDA", false, LDAAbsoluteX},
 
 	// LDX
-	0xA2: {0xA2, "LDX", false, nil},
+	0xA2: {0xA2, "LDX", false, LDXImmediate},
 	0xA6: {0xA6, "LDX", false, nil},
 	0xAE: {0xAE, "LDX", false, nil},
 	0xB6: {0xB6, "LDX", false, nil},
@@ -200,7 +200,7 @@ var InstructionTable = map[byte]Instruction{
 	0xA8: {0xA8, "TAY", false, nil},
 
 	// TAX
-	0xAA: {0xAA, "TAX", false, nil},
+	0xAA: {0xAA, "TAX", false, TAXImpplied},
 
 	// BCS
 	0xB0: {0xB0, "BCS", false, nil},
@@ -242,11 +242,11 @@ var InstructionTable = map[byte]Instruction{
 	0xD0: {0xD0, "BNE", false, nil},
 
 	// CLD
-	0xD8: {0xD8, "CLD", false, nil},
+	0xD8: {0xD8, "CLD", false, CLDImplied},
 
 	// CPX
 	0xE0: {0xE0, "CPX", false, nil},
-	0xE4: {0xE4, "CPX", false, nil},
+	0xE4: {0xE4, "CPX", false, CPXZeroPage},
 	0xEC: {0xEC, "CPX", false, nil},
 
 	// SBC
@@ -269,7 +269,7 @@ var InstructionTable = map[byte]Instruction{
 	0xE8: {0xE8, "INX", false, nil},
 
 	// NOP
-	0xEA: {0xEA, "NOP", false, nil},
+	0xEA: {0xEA, "NOP", false, NOPImplied},
 
 	// BEQ
 	0xF0: {0xF0, "BEQ", false, nil},

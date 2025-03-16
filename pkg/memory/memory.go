@@ -101,11 +101,11 @@ func (m *Memory) Read(address uint16) byte {
 		return m.APUAndIORegisters[address-0x4000]
 	case address < UnmappedCartridgeStartAddress: // 0x4018 - 0x401F
 		panic("testing memory space")
-	case address < RAMCartridgeStartAddress: // 0x4020 - 0xFFFF
-		panic("unmapped cartridge space")
+	case address < RAMCartridgeStartAddress: // 0x4020 - 0x6000
+		return m.RAMCartridgeSpace[address-0x4020]
 	case address < ROMCartridgeStartAddress: // 0x6000 - 0x7FFF
 		return m.RAMCartridgeSpace[address-0x6000]
-	case address < ROMCartridgeStartAddress+ROMCartridgeMemorySize-1: // 0x8000 - 0xFFFF
+	case address <= ROMCartridgeStartAddress+ROMCartridgeMemorySize-1: // 0x8000 - 0xFFFF
 		return m.ROMCartridgeSpace[address-0x8000]
 	default:
 		fmt.Printf("Invalid memory address: %x \n", address)
@@ -127,8 +127,8 @@ func (m *Memory) Write(address uint16, value byte) {
 		m.APUAndIORegisters[address-0x4000] = value
 	case address < UnmappedCartridgeStartAddress: // 0x4018 - 0x401F
 		panic("testing memory space")
-	case address < RAMCartridgeStartAddress: // 0x4020 - 0xFFFF
-		panic("unmapped cartridge space")
+	case address < RAMCartridgeStartAddress: // 0x4020 - 0x6000
+		m.RAMCartridgeSpace[address-0x4020] = value
 	case address < ROMCartridgeStartAddress: // 0x6000 - 0x7FFF
 		m.RAMCartridgeSpace[address-0x6000] = value
 	case address < ROMCartridgeStartAddress+ROMCartridgeMemorySize-1: // 0x8000 - 0xFFFF
@@ -161,4 +161,18 @@ func (m *Memory) ReadWord(address uint16) uint16 {
 func (m *Memory) WriteWord(address uint16, value uint16) {
 	m.Write(address, byte(value&0xFF))
 	m.Write(address+1, byte(value>>8))
+}
+
+func (m *Memory) ReadAddressIndirectPageBoundaryBug(address uint16) uint16 {
+
+	var addr uint16
+	if (address & 0x00FF) == 0x00FF { // Si el puntero termina en XXFF, aplica el bug
+		low := m.Read(address)
+		high := m.Read(address & 0xFF00) // Lee desde XX00 en vez de XXFF+1
+		addr = uint16(high)<<8 | uint16(low)
+	} else {
+		addr = m.ReadWord(address) // Lectura normal
+	}
+
+	return addr
 }
