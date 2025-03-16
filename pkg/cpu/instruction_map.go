@@ -49,7 +49,7 @@ var InstructionTable = map[byte]Instruction{
 	// AND
 	0x21: {0x21, "AND", false, nil},
 	0x25: {0x25, "AND", false, nil},
-	0x29: {0x29, "AND", false, nil},
+	0x29: {0x29, "AND", false, ANDImmediate},
 	0x2D: {0x2D, "AND", false, nil},
 	0x31: {0x31, "AND", false, nil},
 	0x35: {0x35, "AND", false, nil},
@@ -183,7 +183,7 @@ var InstructionTable = map[byte]Instruction{
 	0xA1: {0xA1, "LDA", false, nil},
 	0xA5: {0xA5, "LDA", false, nil},
 	0xA9: {0xA9, "LDA", false, LDAImmediate},
-	0xAD: {0xAD, "LDA", false, nil},
+	0xAD: {0xAD, "LDA", false, LDAAbsolute},
 	0xB1: {0xB1, "LDA", false, nil},
 	0xB5: {0xB5, "LDA", false, nil},
 	0xB9: {0xB9, "LDA", false, nil},
@@ -239,7 +239,7 @@ var InstructionTable = map[byte]Instruction{
 	0xCA: {0xCA, "DEX", false, nil},
 
 	// BNE
-	0xD0: {0xD0, "BNE", false, nil},
+	0xD0: {0xD0, "BNE", false, BNERelative},
 
 	// CLD
 	0xD8: {0xD8, "CLD", false, CLDImplied},
@@ -266,13 +266,13 @@ var InstructionTable = map[byte]Instruction{
 	0xFE: {0xFE, "INC", false, nil},
 
 	// INX
-	0xE8: {0xE8, "INX", false, nil},
+	0xE8: {0xE8, "INX", false, INXImplied},
 
 	// NOP
 	0xEA: {0xEA, "NOP", false, NOPImplied},
 
 	// BEQ
-	0xF0: {0xF0, "BEQ", false, nil},
+	0xF0: {0xF0, "BEQ", false, BEQRelative},
 
 	// SED
 	0xF8: {0xF8, "SED", false, nil},

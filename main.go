@@ -13,7 +13,8 @@ func main() {
 	// Command line flags
 	debugMode := flag.Bool("debug", true, "Run in debug mode with UI")
 	//romPath := flag.String("rom", "roms/test_cpu_exec_space_apu.nes", "Path to ROM file")
-	romPath := flag.String("rom", "roms/official_only.nes", "Path to ROM file")
+	//romPath := flag.String("rom", "roms/official_only.nes", "Path to ROM file")
+	romPath := flag.String("rom", "roms/Legend of Zelda, The (USA) (Rev A).nes", "Path to ROM file")
 
 	flag.Parse()
 

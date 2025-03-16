@@ -23,8 +23,18 @@ func LDAImmediate(c *CPU) uint8 {
 	return 2 // cycles 2
 }
 
+func LDAAbsolute(c *CPU) uint8 {
+	c.A = c.Memory.Read(AbsoluteMemoryDirection(c))
+
+	c.setFlagZByValue(c.A)
+	c.setFlagNByValue(c.A)
+
+	c.MovePC(3)
+	return 4 // cycles 4
+}
+
 func LDAAbsoluteX(c *CPU) uint8 {
-	c.A = c.Memory.Read(AbsoluteX(c))
+	c.A = c.Memory.Read(AbsoluteXMemoryDirection(c))
 
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
@@ -61,7 +71,6 @@ func LDY(c *CPU, address uint16) {
 }
 
 // STA - Store Accumulator
-// not tested
 func STA(c *CPU, address uint16) {
 	c.Memory.Write(address, c.A)
 }
@@ -76,7 +85,7 @@ func STAAbsolute(c *CPU) uint8 {
 }
 
 func STAAbsoluteX(c *CPU) uint8 {
-	address := AbsoluteX(c)
+	address := AbsoluteXMemoryDirection(c)
 
 	STA(c, address)
 
@@ -220,11 +229,15 @@ func INC(c *CPU, address uint16) {
 }
 
 // INX - Increment X Register
-// not tested
-func INX(c *CPU) {
+func INXImplied(c *CPU) uint8 {
 	c.X++
+
 	c.setFlagZByValue(c.X)
 	c.setFlagNByValue(c.X)
+
+	c.MovePC(1)
+
+	return 2 // 2 cycles
 }
 
 // INY - Increment Y Register
@@ -263,11 +276,22 @@ func DEY(c *CPU) {
 // Instructions for logical operations
 
 // AND - Logical AND
-// not tested
 func AND(c *CPU, address uint16) {
 	c.A &= c.Memory.Read(address)
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
+}
+
+func ANDImmediate(c *CPU) uint8 {
+	value := Immediate(c)
+
+	c.A = c.A & value
+	c.setFlagZByValue(c.A)
+	c.setFlagNByValue(c.A)
+
+	c.MovePC(2)
+
+	return 2 // cycles 2
 }
 
 // ORA - Logical OR
@@ -453,6 +477,28 @@ func BEQ(c *CPU, offset int8) {
 	}
 }
 
+func BEQRelative(c *CPU) uint8 {
+	offSet := int16(int8(c.Memory.Read(c.PC + 1))) // Leer el offset como int8
+	cycles := uint8(2)                             // Siempre consume al menos 2 ciclos
+
+	if c.GetFlagZ() == 1 { // Si Z == 1, se ejecuta el salto
+		oldPC := c.PC + 2 // La dirección de la siguiente instrucción
+
+		// Calcular la nueva dirección
+		c.PC = uint16(int16(oldPC) + offSet)
+		cycles++ // Un ciclo adicional por el salto
+
+		// Si el salto cruza una página, agregar un ciclo extra
+		if (oldPC & 0xFF00) != (c.PC & 0xFF00) {
+			cycles++
+		}
+	} else {
+		c.PC += 2 // Si no salta, solo avanza el PC 2 bytes
+	}
+
+	return cycles
+}
+
 // BIT - Bit Test
 func BITZero(c *CPU) uint8 {
 	memory_value := c.Memory.Read(c.PC + 1)
@@ -467,10 +513,26 @@ func BITZero(c *CPU) uint8 {
 }
 
 // BNE - Branch if Not Equal (Z=0)
-func BNE(c *CPU, offset int8) {
-	if c.GetFlag(FlagZ) == 0 {
-		c.MovePC(uint16(int32(offset)))
+func BNERelative(c *CPU) uint8 {
+	offSet := int16(int8(c.Memory.Read(c.PC + 1))) // Leer el offset como int8
+	cycles := uint8(2)                             // Siempre consume al menos 2 ciclos
+
+	if c.GetFlagZ() == 0 { // Si Z == 0, se ejecuta el salto
+		oldPC := c.PC + 2 // La dirección de la siguiente instrucción
+
+		// Calcular la nueva dirección
+		c.PC = uint16(int16(oldPC) + offSet)
+		cycles++ // Un ciclo adicional por el salto
+
+		// Si el salto cruza una página, agregar un ciclo extra
+		if (oldPC & 0xFF00) != (c.PC & 0xFF00) {
+			cycles++
+		}
+	} else {
+		c.PC += 2 // Si no salta, solo avanza el PC 2 bytes
 	}
+
+	return cycles
 }
 
 // BMI - Branch if Minus (N=1)

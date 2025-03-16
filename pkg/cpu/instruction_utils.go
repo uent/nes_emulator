@@ -12,7 +12,7 @@ func AbsoluteMemoryDirection(c *CPU) uint16 {
 }
 
 // AbsoluteX: value in the memory direction found in c.PC + 1 (2 bytes) + c.X
-func AbsoluteX(c *CPU) uint16 {
+func AbsoluteXMemoryDirection(c *CPU) uint16 {
 	return AbsoluteMemoryDirection(c) + uint16(c.X)
 }
 
