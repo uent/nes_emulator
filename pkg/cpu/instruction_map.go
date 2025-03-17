@@ -38,7 +38,7 @@ var InstructionTable = map[byte]Instruction{
 	0x08: {0x08, "PHP", false, nil},
 
 	// BPL
-	0x10: {0x10, "BPL", false, nil},
+	0x10: {0x10, "BPL", false, BPLRelative},
 
 	// CLC
 	0x18: {0x18, "CLC", false, nil},
@@ -140,9 +140,9 @@ var InstructionTable = map[byte]Instruction{
 
 	// STA
 	0x81: {0x81, "STA", false, nil},
-	0x85: {0x85, "STA", false, nil},
+	0x85: {0x85, "STA", false, STAZeroPage},
 	0x8D: {0x8D, "STA", false, STAAbsolute},
-	0x91: {0x91, "STA", false, nil},
+	0x91: {0x91, "STA", false, STAIndirectY},
 	0x95: {0x95, "STA", false, nil},
 	0x99: {0x99, "STA", false, nil},
 	0x9D: {0x9D, "STA", false, STAAbsoluteX},
@@ -153,12 +153,12 @@ var InstructionTable = map[byte]Instruction{
 	0x94: {0x94, "STY", false, nil},
 
 	// STX
-	0x86: {0x86, "STX", false, nil},
+	0x86: {0x86, "STX", false, STXZeroPage},
 	0x8E: {0x8E, "STX", false, nil},
 	0x96: {0x96, "STX", false, nil},
 
 	// DEY
-	0x88: {0x88, "DEY", false, nil},
+	0x88: {0x88, "DEY", false, DEYImplied},
 
 	// TXA
 	0x8A: {0x8A, "TXA", false, nil},
@@ -173,7 +173,7 @@ var InstructionTable = map[byte]Instruction{
 	0x9A: {0x9A, "TXS", false, TXSImplied},
 
 	// LDY
-	0xA0: {0xA0, "LDY", false, nil},
+	0xA0: {0xA0, "LDY", false, LDYImmediate},
 	0xA4: {0xA4, "LDY", false, nil},
 	0xAC: {0xAC, "LDY", false, nil},
 	0xB4: {0xB4, "LDY", false, nil},
@@ -236,7 +236,7 @@ var InstructionTable = map[byte]Instruction{
 	0xC8: {0xC8, "INY", false, nil},
 
 	// DEX
-	0xCA: {0xCA, "DEX", false, nil},
+	0xCA: {0xCA, "DEX", false, DEXImplied},
 
 	// BNE
 	0xD0: {0xD0, "BNE", false, BNERelative},

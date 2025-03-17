@@ -1,6 +1,8 @@
 // Package cpu implements the NES CPU (6502) instruction functions
 package cpu
 
+import "fmt"
+
 // This file contains implementations for all 6502 CPU instructions
 
 type CPUOperation func(*CPU) uint8
@@ -18,9 +20,6 @@ func LDAImmediate(c *CPU) uint8 {
 
 	LDA(c, value)
 
-	c.setFlagZByValue(c.A)
-	c.setFlagNByValue(c.A)
-
 	c.MovePC(2)
 	return 2 // cycles 2
 }
@@ -30,9 +29,6 @@ func LDAAbsolute(c *CPU) uint8 {
 
 	LDA(c, value)
 
-	c.setFlagZByValue(c.A)
-	c.setFlagNByValue(c.A)
-
 	c.MovePC(3)
 	return 4 // cycles 4
 }
@@ -41,9 +37,6 @@ func LDAAbsoluteX(c *CPU) uint8 {
 	value := c.Memory.Read(AbsoluteXMemoryDirection(c))
 
 	LDA(c, value)
-
-	c.setFlagZByValue(c.A)
-	c.setFlagNByValue(c.A)
 
 	c.MovePC(3)
 	return 4 // cycles 4 (+1 if page is crossed)
@@ -76,9 +69,28 @@ func LDXImmediate(c *CPU) uint8 {
 	c.setFlagNByValue(c.Y)
 } */
 
+func LDYImmediate(c *CPU) uint8 {
+	c.Y = Immediate(c)
+	c.setFlagZByValue(c.Y)
+	c.setFlagNByValue(c.Y)
+
+	c.MovePC(2)
+
+	return 2 // cycles 2
+}
+
 // STA - Store Accumulator
 func STA(c *CPU, address uint16) {
 	c.Memory.Write(address, c.A)
+}
+
+func STAZeroPage(c *CPU) uint8 {
+	address := ZeroPageMemoryDirection(c)
+	STA(c, address)
+
+	c.MovePC(2)
+
+	return 3 // cicles 3
 }
 
 func STAAbsolute(c *CPU) uint8 {
@@ -100,11 +112,30 @@ func STAAbsoluteX(c *CPU) uint8 {
 	return 5 // cicles 5
 }
 
+func STAIndirectY(c *CPU) uint8 {
+	address, _ := IndirectY(c)
+
+	STA(c, address)
+
+	c.MovePC(2)
+
+	return 6 // cicles 6
+}
+
 // STX - Store X Register
 // not tested
 /* func STX(c *CPU, address uint16) {
 	c.Memory.Write(address, c.X)
 } */
+
+func STXZeroPage(c *CPU) uint8 {
+	address := uint16(ZeroPage(c))
+	c.Memory.Write(address, c.X)
+
+	c.MovePC(2)
+
+	return 3 // 3 cycles
+}
 
 // STY - Store Y Register
 // not tested
@@ -191,7 +222,7 @@ func ADCZeroPageX(c *CPU) uint8 {
 		c.setFlagC(true)
 	}
 
-	overflowFlag := ((cast_value ^ c.A) & (cast_value ^ memoryValue) & 0x80) != 0 // TODO: check logic
+	overflowFlag := ((cast_value ^ c.A) & (cast_value ^ uint8(memoryValue)) & 0x80) != 0 // TODO: check logic
 
 	c.setFlag(FlagV, overflowFlag)
 	c.setFlagZByValue(cast_value)
@@ -201,7 +232,6 @@ func ADCZeroPageX(c *CPU) uint8 {
 
 	c.MovePC(2)
 	return 4 // cycles 4
-
 }
 
 // SBC - Subtract with Carry
@@ -271,6 +301,16 @@ func INXImplied(c *CPU) uint8 {
 	c.setFlagNByValue(c.X)
 } */
 
+func DEXImplied(c *CPU) uint8 {
+	c.X--
+	c.setFlagZByValue(c.X)
+	c.setFlagNByValue(c.X)
+
+	c.MovePC(1)
+
+	return 2 // 2 cycles
+}
+
 // DEY - Decrement Y Register
 // not tested
 /* func DEY(c *CPU) {
@@ -278,6 +318,16 @@ func INXImplied(c *CPU) uint8 {
 	c.setFlagZByValue(c.Y)
 	c.setFlagNByValue(c.Y)
 } */
+
+func DEYImplied(c *CPU) uint8 {
+	c.Y--
+	c.setFlagZByValue(c.Y)
+	c.setFlagNByValue(c.Y)
+
+	c.MovePC(1)
+
+	return 2 // 2 cycles
+}
 
 // Instructions for logical operations
 
@@ -484,14 +534,14 @@ func CPXZeroPage(c *CPU) uint8 {
 } */
 
 func BEQRelative(c *CPU) uint8 {
-	offSet := int16(int8(c.Memory.Read(c.PC + 1))) // Leer el offset como int8
-	cycles := uint8(2)                             // Siempre consume al menos 2 ciclos
+	offSet := int8(c.Memory.Read(c.PC + 1)) // Leer el offset como int8
+	cycles := uint8(2)                      // Siempre consume al menos 2 ciclos
 
 	if c.GetFlagZ() == 1 { // Si Z == 1, se ejecuta el salto
 		oldPC := c.PC + 2 // La dirección de la siguiente instrucción
-
+		fmt.Println("offSet", offSet)
 		// Calcular la nueva dirección
-		c.PC = uint16(int16(oldPC) + offSet)
+		c.PC = uint16(int32(oldPC) + int32(offSet))
 		cycles++ // Un ciclo adicional por el salto
 
 		// Si el salto cruza una página, agregar un ciclo extra
@@ -555,6 +605,26 @@ func BNERelative(c *CPU) uint8 {
 		c.MovePC(uint16(int32(offset)))
 	}
 } */
+
+func BPLRelative(c *CPU) uint8 {
+	offSet := int8(c.Memory.Read(c.PC + 1))
+	cycles := uint8(2)
+
+	if c.GetFlagN() == 0 {
+		oldPC := c.PC + 2
+		c.PC = uint16(int32(oldPC) + int32(offSet))
+		cycles++
+
+		// ✅ Si el salto cruza una página, agregar un ciclo extra
+		if (oldPC & 0xFF00) != (c.PC & 0xFF00) {
+			cycles++
+		}
+	} else {
+		c.MovePC(2)
+	}
+
+	return cycles
+}
 
 // BVC - Branch if Overflow Clear
 // not tested

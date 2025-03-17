@@ -58,7 +58,6 @@ func (c *CPU) Reset() {
 	//c.PC = 0xFFFC
 	//resetAddress := c.Memory.ReadWord(0xFFFC)
 	c.PC = c.Memory.ReadWord(0xFFFC)
-	fmt.Printf("Reset PC: %04X\n", c.PC)
 }
 
 // GetInstruction returns instruction information for the given opcode
@@ -85,7 +84,7 @@ func (c *CPU) Step() (uint8, error) {
 	}
 
 	// Add sleep for debugging/visualization purposes
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
 	//c.PC++
 	//c.PC = c.PC + 2

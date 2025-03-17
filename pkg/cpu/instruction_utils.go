@@ -8,7 +8,7 @@ func Immediate(c *CPU) uint8 {
 
 // Absolute: value in the memory direction found in c.PC + 1 (2 bytes)
 func AbsoluteMemoryDirection(c *CPU) uint16 {
-	return c.PC + 1
+	return c.Memory.ReadWord(c.PC + 1)
 }
 
 // AbsoluteX: value in the memory direction found in c.PC + 1 (2 bytes) + c.X
@@ -24,13 +24,27 @@ func Indirect(c *CPU) uint16 {
 	return address
 }
 
-func ZeroPage(c *CPU) byte {
-	return c.Memory.Read(uint16(Immediate(c)))
+func IndirectY(c *CPU) (uint16, bool) {
+	zeroPageAddr := uint16(c.Memory.Read(c.PC + 1)) // ✅ Dirección en Zero Page
+	baseAddr := c.Memory.ReadWord(zeroPageAddr)     // ✅ Leer puntero de 2 bytes
+
+	effectiveAddr := baseAddr + uint16(c.Y)                        // ✅ Sumar Y al puntero
+	pageCrossed := (baseAddr & 0xFF00) != (effectiveAddr & 0xFF00) // ✅ Detectar cruce de página
+
+	return effectiveAddr, pageCrossed
 }
 
-func ZeroPageX(c *CPU) byte {
-	address := (c.X + Immediate(c)) & 0xFF
-	return c.Memory.Read(uint16(address))
+func ZeroPage(c *CPU) uint16 {
+	return ZeroPageMemoryDirection(c) // ✅ Debe devolver la dirección, no el valor.
+}
+
+func ZeroPageMemoryDirection(c *CPU) uint16 {
+	return uint16(Immediate(c))
+}
+
+func ZeroPageX(c *CPU) uint16 {
+	address := (uint16(Immediate(c)) + uint16(c.X)) & 0xFF // ✅ Asegurar direccionamiento Zero Page
+	return address
 }
 
 // return the casted value and a boolean indicating if there was an overflow
