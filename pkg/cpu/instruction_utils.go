@@ -13,7 +13,8 @@ func AbsoluteMemoryDirection(c *CPU) uint16 {
 
 // AbsoluteX: value in the memory direction found in c.PC + 1 (2 bytes) + c.X
 func AbsoluteXMemoryDirection(c *CPU) uint16 {
-	return AbsoluteMemoryDirection(c) + uint16(c.X)
+	baseAddress := c.Memory.ReadWord(c.PC + 1)
+	return baseAddress + uint16(c.X)
 }
 
 // indirect: the real memory direction value is in the memory direction found in c.PC + 1 (2 bytes)

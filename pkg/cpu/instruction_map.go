@@ -130,7 +130,7 @@ var InstructionTable = map[byte]Instruction{
 	0x7E: {0x7E, "ROR", false, nil},
 
 	// PLA
-	0x68: {0x68, "PLA", false, nil},
+	0x68: {0x68, "PLA", false, PLAImplied},
 
 	// BVS
 	0x70: {0x70, "BVS", false, nil},

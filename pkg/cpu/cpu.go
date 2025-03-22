@@ -3,7 +3,6 @@ package cpu
 
 import (
 	"fmt"
-	"time"
 )
 
 // CPU represents the 6502 processor of the NES
@@ -84,7 +83,7 @@ func (c *CPU) Step() (uint8, error) {
 	}
 
 	// Add sleep for debugging/visualization purposes
-	time.Sleep(50 * time.Millisecond)
+	//time.Sleep(50 * time.Millisecond)
 
 	//c.PC++
 	//c.PC = c.PC + 2

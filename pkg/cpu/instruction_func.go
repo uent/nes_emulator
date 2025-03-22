@@ -163,12 +163,15 @@ func PHAImplied(c *CPU) uint8 {
 } */
 
 // PLA - Pull Accumulator
-// not tested
-/* func PLA(c *CPU) {
+func PLAImplied(c *CPU) uint8 {
 	c.A = c.pullStack()
 	c.setFlagZByValue(c.A)
 	c.setFlagNByValue(c.A)
-} */
+
+	c.MovePC(1)
+
+	return 4 // 4 cycles
+}
 
 // PLP - Pull Processor Status
 // not tested

@@ -103,21 +103,25 @@ func (d *CPUDebugger) Update() error {
 			d.cycleCount++
 			d.nextStep = false
 
-			// Capture current instruction for disassembly
-			cpu := d.nes.CPU
-			opcode := d.nes.Memory.Read(cpu.PC)
-			instruction := cpu.GetInstruction(opcode)
+			d.PrintDisassembly()
 
-			// Add to disassembly log (keeping full history)
-			disasm := fmt.Sprintf("%04X: %02X %s", cpu.PC, opcode, instruction.Mnemonic)
-			d.disassembly = append(d.disassembly, disasm)
-			
 			// Clear display index to show most recent instructions
 			d.displayIdx = 0
 		}
 	}
 
 	return nil
+}
+
+func (d *CPUDebugger) PrintDisassembly() {
+	// Capture current instruction for disassembly
+	cpu := d.nes.CPU
+	opcode := d.nes.Memory.Read(cpu.PC)
+	instruction := cpu.GetInstruction(opcode)
+
+	// Add to disassembly log (keeping full history)
+	disasm := fmt.Sprintf("%04X: %02X %s", cpu.PC, opcode, instruction.Mnemonic)
+	d.disassembly = append(d.disassembly, disasm)
 }
 
 // Draw renders the debugger UI
@@ -183,13 +187,13 @@ func (d *CPUDebugger) Draw(screen *ebiten.Image) {
 
 	// Current and next instructions
 	y += 2 * lineHeight
-	
+
 	// Display scroll indicators if needed
 	var disasmTitle string
 	if d.displayIdx > 0 {
 		disasmTitle = "Disassembly: [Scroll ↑] (R to reset)"
 	} else if len(d.disassembly) > 12 {
-		disasmTitle = "Disassembly: [Scroll ↓]" 
+		disasmTitle = "Disassembly: [Scroll ↓]"
 	} else {
 		disasmTitle = "Disassembly:"
 	}
@@ -198,7 +202,7 @@ func (d *CPUDebugger) Draw(screen *ebiten.Image) {
 	// Draw disassembly - show maximum 12 instructions in view
 	y += lineHeight
 	maxInstructions := 12
-	
+
 	// Calculate start and end indices for display
 	startIdx := 0
 	if len(d.disassembly) > maxInstructions {
@@ -208,21 +212,21 @@ func (d *CPUDebugger) Draw(screen *ebiten.Image) {
 			startIdx = 0
 		}
 	}
-	
+
 	endIdx := startIdx + maxInstructions
 	if endIdx > len(d.disassembly) {
 		endIdx = len(d.disassembly)
 	}
-	
+
 	// Display instructions in the visible range
 	for i := startIdx; i < endIdx; i++ {
 		var textColor color.Color = color.White
-		
+
 		// Highlight current/latest instruction
 		if i == len(d.disassembly)-1 && d.displayIdx == 0 {
 			textColor = color.RGBA{255, 255, 0, 255}
 		}
-		
+
 		text.Draw(screen, d.disassembly[i], face, padding, y, textColor)
 		y += lineHeight
 	}
