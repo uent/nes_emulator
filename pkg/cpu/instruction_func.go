@@ -16,7 +16,7 @@ func LDA(c *CPU, value uint8) {
 }
 
 func LDAImmediate(c *CPU) uint8 {
-	value := Immediate(c)
+	value := c.Immediate()
 
 	LDA(c, value)
 
@@ -25,7 +25,7 @@ func LDAImmediate(c *CPU) uint8 {
 }
 
 func LDAAbsolute(c *CPU) uint8 {
-	value := c.Memory.Read(AbsoluteMemoryDirection(c))
+	value := c.Memory.Read(c.AbsoluteMemoryDirection())
 
 	LDA(c, value)
 
@@ -34,7 +34,7 @@ func LDAAbsolute(c *CPU) uint8 {
 }
 
 func LDAAbsoluteX(c *CPU) uint8 {
-	value := c.Memory.Read(AbsoluteXMemoryDirection(c))
+	value := c.Memory.Read(c.AbsoluteXMemoryDirection())
 
 	LDA(c, value)
 
@@ -51,7 +51,7 @@ func LDAAbsoluteX(c *CPU) uint8 {
 } */
 
 func LDXImmediate(c *CPU) uint8 {
-	c.X = Immediate(c)
+	c.X = c.Immediate()
 
 	c.setFlagZByValue(c.X)
 	c.setFlagNByValue(c.X)
@@ -70,7 +70,7 @@ func LDXImmediate(c *CPU) uint8 {
 } */
 
 func LDYImmediate(c *CPU) uint8 {
-	c.Y = Immediate(c)
+	c.Y = c.Immediate()
 	c.setFlagZByValue(c.Y)
 	c.setFlagNByValue(c.Y)
 
@@ -85,7 +85,7 @@ func STA(c *CPU, address uint16) {
 }
 
 func STAZeroPage(c *CPU) uint8 {
-	address := ZeroPageMemoryDirection(c)
+	address := c.ZeroPageMemoryDirection()
 	STA(c, address)
 
 	c.MovePC(2)
@@ -94,7 +94,7 @@ func STAZeroPage(c *CPU) uint8 {
 }
 
 func STAAbsolute(c *CPU) uint8 {
-	address := AbsoluteMemoryDirection(c)
+	address := c.AbsoluteMemoryDirection()
 	STA(c, address)
 
 	c.MovePC(3)
@@ -103,7 +103,7 @@ func STAAbsolute(c *CPU) uint8 {
 }
 
 func STAAbsoluteX(c *CPU) uint8 {
-	address := AbsoluteXMemoryDirection(c)
+	address := c.AbsoluteXMemoryDirection()
 
 	STA(c, address)
 
@@ -113,7 +113,7 @@ func STAAbsoluteX(c *CPU) uint8 {
 }
 
 func STAIndirectY(c *CPU) uint8 {
-	address, _ := IndirectY(c)
+	address, _ := c.IndirectY()
 
 	STA(c, address)
 
@@ -129,7 +129,7 @@ func STAIndirectY(c *CPU) uint8 {
 } */
 
 func STXZeroPage(c *CPU) uint8 {
-	address := uint16(ZeroPage(c))
+	address := uint16(c.ZeroPage())
 	c.Memory.Write(address, c.X)
 
 	c.MovePC(2)
@@ -216,7 +216,7 @@ func PLPImplied(c *CPU) uint8 {
 } */
 
 func ADCZeroPageX(c *CPU) uint8 {
-	memoryValue := ZeroPageX(c)
+	memoryValue := c.ZeroPageX()
 
 	value := uint16(c.A) + uint16(memoryValue) + uint16(c.GetFlagC())
 	cast_value, overflow := CastUint16ToUint8(value)
@@ -270,7 +270,7 @@ func ADCZeroPageX(c *CPU) uint8 {
 // This is a read-modify-write instruction, meaning that it first writes the original value back to memory before the modified value. This extra write can matter if targeting a hardware register.
 // TODO: check this function
 func INCZeroPage(c *CPU) uint8 {
-	address := ZeroPage(c)
+	address := c.ZeroPage()
 	value := c.Memory.Read(address)
 	value++
 	c.Memory.Write(address, value)
@@ -358,7 +358,7 @@ func DEYImplied(c *CPU) uint8 {
 } */
 
 func ANDImmediate(c *CPU) uint8 {
-	value := Immediate(c)
+	value := c.Immediate()
 
 	c.A = c.A & value
 	c.setFlagZByValue(c.A)
@@ -503,7 +503,7 @@ func LSRAccumulator(c *CPU) uint8 {
 } */
 
 func CPXZeroPage(c *CPU) uint8 {
-	value := ZeroPage(c)
+	value := c.ZeroPage()
 
 	result := int16(c.X) - int16(value)
 
@@ -669,7 +669,7 @@ func JMP(c *CPU, address uint16) {
 }
 
 func JMPIndirect(c *CPU) uint8 {
-	address := Indirect(c)
+	address := c.Indirect()
 
 	JMP(c, address)
 
@@ -677,7 +677,7 @@ func JMPIndirect(c *CPU) uint8 {
 }
 
 func JMPAbsolute(c *CPU) uint8 {
-	address := AbsoluteMemoryDirection(c)
+	address := c.AbsoluteMemoryDirection()
 
 	JMP(c, address)
 
@@ -693,7 +693,7 @@ func JMPAbsolute(c *CPU) uint8 {
 } */
 
 func JSRAbsolute(c *CPU) uint8 {
-	address := AbsoluteMemoryDirection(c)
+	address := c.AbsoluteMemoryDirection()
 	// a real cpu left the PC in the position PC + 1
 	c.pushStackWord(c.PC + 2 - 1) //TODO: check this
 	c.PC = address
