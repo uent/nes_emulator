@@ -110,7 +110,7 @@ var InstructionTable = map[byte]Instruction{
 	0x58: {0x58, "CLI", false, nil},
 
 	// RTS
-	0x60: {0x60, "RTS", false, nil},
+	0x60: {0x60, "RTS", false, RTSImplied},
 
 	// ADC
 	0x61: {0x61, "ADC", false, nil},
@@ -260,7 +260,7 @@ var InstructionTable = map[byte]Instruction{
 	0xFD: {0xFD, "SBC", false, nil},
 
 	// INC
-	0xE6: {0xE6, "INC", false, nil},
+	0xE6: {0xE6, "INC", false, INCZeroPage},
 	0xEE: {0xEE, "INC", false, nil},
 	0xF6: {0xF6, "INC", false, nil},
 	0xFE: {0xFE, "INC", false, nil},

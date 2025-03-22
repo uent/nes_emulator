@@ -267,6 +267,22 @@ func ADCZeroPageX(c *CPU) uint8 {
 	c.setFlagNByValue(value)
 } */
 
+// This is a read-modify-write instruction, meaning that it first writes the original value back to memory before the modified value. This extra write can matter if targeting a hardware register.
+// TODO: check this function
+func INCZeroPage(c *CPU) uint8 {
+	address := ZeroPage(c)
+	value := c.Memory.Read(address)
+	value++
+	c.Memory.Write(address, value)
+
+	c.setFlagZByValue(value)
+	c.setFlagNByValue(value)
+
+	c.MovePC(2)
+
+	return 5 // 5 cycles
+}
+
 // INX - Increment X Register
 func INXImplied(c *CPU) uint8 {
 	c.X++
@@ -686,11 +702,15 @@ func JSRAbsolute(c *CPU) uint8 {
 }
 
 // RTS - Return from Subroutine
-// not tested
-/* func RTS(c *CPU) {
-	pulled := c.pullStackWord() + 1
-	c.MovePC(pulled - c.PC)
-} */
+func RTSImplied(c *CPU) uint8 {
+	address := c.pullStackWord()
+
+	c.PC = address
+
+	c.MovePC(1)
+
+	return 6 // cycles 6
+}
 
 // RTI - Return from Interrupt
 // not tested
