@@ -68,11 +68,11 @@ func (c *CPU) GetInstruction(opcode byte) Instruction {
 func (c *CPU) Step() (uint8, error) {
 	// Read opcode
 	var cycles uint8
-	fmt.Printf("PC: %02X\n", c.PC)
+	//fmt.Printf("PC: %02X\n", c.PC)
 	opcode := c.Memory.Read(c.PC)
 
-	instruction := GetInstruction(opcode)
-	fmt.Printf("Executing opcode: %02X (%s), PC: %02X\n", opcode, instruction.Mnemonic, c.PC)
+	//instruction := GetInstruction(opcode)
+	//fmt.Printf("Executing opcode: %02X (%s), PC: %02X\n", opcode, instruction.Mnemonic, c.PC)
 
 	// Get the execution function for the instruction
 	executeFunc := GetInstructionFunc(opcode)

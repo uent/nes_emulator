@@ -143,7 +143,7 @@ var InstructionTable = map[byte]Instruction{
 	0x85: {0x85, "STA", false, STAZeroPage},
 	0x8D: {0x8D, "STA", false, STAAbsolute},
 	0x91: {0x91, "STA", false, STAIndirectY},
-	0x95: {0x95, "STA", false, nil},
+	0x95: {0x95, "STA", false, STAZeroPageX},
 	0x99: {0x99, "STA", false, nil},
 	0x9D: {0x9D, "STA", false, STAAbsoluteX},
 
@@ -209,7 +209,7 @@ var InstructionTable = map[byte]Instruction{
 	0xB8: {0xB8, "CLV", false, nil},
 
 	// TSX
-	0xBA: {0xBA, "TSX", false, nil},
+	0xBA: {0xBA, "TSX", false, TSXImplied},
 
 	// CPY
 	0xC0: {0xC0, "CPY", false, nil},
@@ -219,15 +219,15 @@ var InstructionTable = map[byte]Instruction{
 	// CMP
 	0xC1: {0xC1, "CMP", false, nil},
 	0xC5: {0xC5, "CMP", false, nil},
-	0xC9: {0xC9, "CMP", false, nil},
+	0xC9: {0xC9, "CMP", false, CMPImmediate},
 	0xCD: {0xCD, "CMP", false, nil},
-	0xD1: {0xD1, "CMP", false, nil},
+	0xD1: {0xD1, "CMP", false, CMPIndirectY},
 	0xD5: {0xD5, "CMP", false, nil},
 	0xD9: {0xD9, "CMP", false, nil},
 	0xDD: {0xDD, "CMP", false, nil},
 
 	// DEC
-	0xC6: {0xC6, "DEC", false, nil},
+	0xC6: {0xC6, "DEC", false, DECZeroPage},
 	0xCE: {0xCE, "DEC", false, nil},
 	0xD6: {0xD6, "DEC", false, nil},
 	0xDE: {0xDE, "DEC", false, nil},

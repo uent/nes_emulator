@@ -93,6 +93,16 @@ func STAZeroPage(c *CPU) uint8 {
 	return 3 // cicles 3
 }
 
+func STAZeroPageX(c *CPU) uint8 {
+	address := c.ZeroPageX()
+	STA(c, address)
+
+	c.MovePC(2)
+
+	return 4 // cicles 4
+
+}
+
 func STAAbsolute(c *CPU) uint8 {
 	address := c.AbsoluteMemoryDirection()
 	STA(c, address)
@@ -216,7 +226,7 @@ func PLPImplied(c *CPU) uint8 {
 } */
 
 func ADCZeroPageX(c *CPU) uint8 {
-	memoryValue := c.ZeroPageX()
+	memoryValue := c.ZeroPageX() // TODO: check if is correct the name "memoryValue"
 
 	value := uint16(c.A) + uint16(memoryValue) + uint16(c.GetFlagC())
 	cast_value, overflow := CastUint16ToUint8(value)
@@ -311,6 +321,20 @@ func INXImplied(c *CPU) uint8 {
 	c.setFlagZByValue(value)
 	c.setFlagNByValue(value)
 } */
+
+func DECZeroPage(c *CPU) uint8 {
+	address := c.ZeroPage()
+	value := c.Memory.Read(address)
+	value--
+	c.Memory.Write(address, value)
+
+	c.setFlagZByValue(value)
+	c.setFlagNByValue(value)
+
+	c.MovePC(2)
+
+	return 5 // 5 cycles
+}
 
 // DEX - Decrement X Register
 // not tested
@@ -483,14 +507,39 @@ func LSRAccumulator(c *CPU) uint8 {
 // Instructions for comparisons
 
 // CMP - Compare Accumulator
-// not tested
-/* func CMP(c *CPU, address uint16) {
+func CMP(c *CPU, address uint16) {
 	value := c.Memory.Read(address)
 	result := c.A - value
-	c.setFlag(FlagC, c.A >= value)
-	c.setFlagZByValue(result)
+
+	c.setFlagC(c.A >= value)
+	c.setFlagZ(c.A == value)
 	c.setFlagNByValue(result)
-} */
+}
+
+func CMPImmediate(c *CPU) uint8 {
+	value := c.Immediate()
+
+	CMP(c, uint16(value))
+
+	c.MovePC(2)
+
+	return 2 // cycles 2
+}
+
+func CMPIndirectY(c *CPU) uint8 {
+	address, pageCrossed := c.IndirectY()
+
+	CMP(c, address)
+
+	c.MovePC(2)
+
+	cycles := uint8(5)
+	if pageCrossed {
+		cycles++
+	}
+
+	return cycles // cycles 5 (+1 if page is crossed)
+}
 
 // CPX - Compare X Register
 // not tested
@@ -664,8 +713,9 @@ func BPLRelative(c *CPU) uint8 {
 // Instructions for jumps and subroutines
 
 // JMP - Jump
+// TODO: Unfortunately, because of a CPU bug, if this 2-byte variable has an address ending in $FF and thus crosses a page, then the CPU fails to increment the page when reading the second byte and thus reads the wrong address. For example, JMP ($03FF) reads $03FF and $0300 instead of $0400. Care should be taken to ensure this variable does not cross a page.
 func JMP(c *CPU, address uint16) {
-	c.PC = c.Memory.ReadWord(address)
+	c.PC = address
 }
 
 func JMPIndirect(c *CPU) uint8 {
@@ -837,12 +887,16 @@ func TAXImpplied(c *CPU) uint8 {
 } */
 
 // TSX - Transfer Stack Pointer to X
-// not tested
-/* func TSX(c *CPU) {
+func TSXImplied(c *CPU) uint8 {
 	c.X = c.SP
+
 	c.setFlagZByValue(c.X)
 	c.setFlagNByValue(c.X)
-} */
+
+	c.MovePC(1)
+
+	return 2 // cycles 2
+}
 
 // TXA - Transfer X to A
 // not tested

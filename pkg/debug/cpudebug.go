@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	screenWidth  = 800
-	screenHeight = 600
+	screenWidth  = 1024
+	screenHeight = 768
 	padding      = 20
 	lineHeight   = 20
 )
