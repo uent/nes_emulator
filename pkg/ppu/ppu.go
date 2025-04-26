@@ -16,6 +16,7 @@ type PPU struct {
 	// PPU memory
 	VRAM      []uint8
 	OAM       []uint8
+	Palette   []uint8
 	
 	// Internal registers
 	v         uint16 // Current VRAM address (15 bits)
@@ -27,6 +28,24 @@ type PPU struct {
 	Scanline  int
 	Cycle     int
 	FrameComplete bool
+	
+	// NMI handling
+	nmiOccurred bool
+	nmiOutput   bool
+	nmiPrevious bool
+	nmiDelay    uint8
+	
+	// Data buffer for PPUDATA reads
+	readBuffer uint8
+	
+	// Rendering buffers
+	frontBuffer []uint8
+	backBuffer  []uint8
+	
+	// Reference to CPU for NMI triggering
+	CPU interface {
+		TriggerNMI()
+	}
 }
 
 // NewPPU creates a new PPU instance
@@ -34,7 +53,17 @@ func NewPPU() *PPU {
 	return &PPU{
 		VRAM: make([]uint8, 0x4000),
 		OAM:  make([]uint8, 256),
+		Palette: make([]uint8, 32),
+		frontBuffer: make([]uint8, 256*240*4), // RGBA buffer
+		backBuffer: make([]uint8, 256*240*4),  // RGBA buffer
 	}
+}
+
+// SetCPU sets the CPU reference for NMI triggering
+func (p *PPU) SetCPU(cpu interface {
+	TriggerNMI()
+}) {
+	p.CPU = cpu
 }
 
 // Reset resets the PPU to its initial state
@@ -55,11 +84,218 @@ func (p *PPU) Reset() {
 	p.Scanline = 0
 	p.Cycle = 0
 	p.FrameComplete = false
+	
+	p.nmiOccurred = false
+	p.nmiOutput = false
+	p.nmiPrevious = false
+	p.nmiDelay = 0
+	
+	p.readBuffer = 0
+}
+
+// ReadRegister reads from a PPU register
+func (p *PPU) ReadRegister(address uint16) uint8 {
+	// Map the address to 0-7 range (PPU registers)
+	reg := address % 8
+	
+	switch reg {
+	case 0x0: // PPUCTRL ($2000) - Write only
+		return 0
+		
+	case 0x1: // PPUMASK ($2001) - Write only
+		return 0
+		
+	case 0x2: // PPUSTATUS ($2002)
+		// Reading PPUSTATUS has side effects
+		result := p.PPUSTATUS
+		// Clear VBlank flag
+		p.PPUSTATUS &= 0x7F
+		// Reset address latch
+		p.w = 0
+		return result
+		
+	case 0x3: // OAMADDR ($2003) - Write only
+		return 0
+		
+	case 0x4: // OAMDATA ($2004)
+		return p.OAM[p.OAMADDR]
+		
+	case 0x5: // PPUSCROLL ($2005) - Write only
+		return 0
+		
+	case 0x6: // PPUADDR ($2006) - Write only
+		return 0
+		
+	case 0x7: // PPUDATA ($2007)
+		// Reading from PPUDATA has special behavior
+		value := p.readBuffer
+		
+		// Get the data at the current VRAM address
+		p.readBuffer = p.readPPUData()
+		
+		// Special case for palette memory
+		if p.v >= 0x3F00 && p.v <= 0x3FFF {
+			value = p.readBuffer
+			p.readBuffer = p.readPPUData()
+		}
+		
+		// Auto-increment address
+		p.incrementVRAMAddress()
+		
+		return value
+	}
+	
+	return 0
+}
+
+// WriteRegister writes to a PPU register
+func (p *PPU) WriteRegister(address uint16, value uint8) {
+	// Map the address to 0-7 range (PPU registers)
+	reg := address % 8
+	
+	switch reg {
+	case 0x0: // PPUCTRL ($2000)
+		p.PPUCTRL = value
+		// t: ...BA.. ........ = d: ......BA
+		p.t = (p.t & 0xF3FF) | ((uint16(value) & 0x03) << 10)
+		// Update NMI output
+		p.nmiOutput = (value & 0x80) != 0
+		// If NMI occurs and output is enabled, trigger NMI
+		if p.nmiOutput && p.nmiOccurred && p.CPU != nil {
+			p.CPU.TriggerNMI()
+		}
+		
+	case 0x1: // PPUMASK ($2001)
+		p.PPUMASK = value
+		
+	case 0x2: // PPUSTATUS ($2002) - Read only
+		// Writing to PPUSTATUS has no effect
+		
+	case 0x3: // OAMADDR ($2003)
+		p.OAMADDR = value
+		
+	case 0x4: // OAMDATA ($2004)
+		p.OAM[p.OAMADDR] = value
+		p.OAMADDR++
+		
+	case 0x5: // PPUSCROLL ($2005)
+		if p.w == 0 {
+			// First write (X scroll)
+			p.x = value & 0x07
+			p.t = (p.t & 0xFFE0) | (uint16(value) >> 3)
+			p.w = 1
+		} else {
+			// Second write (Y scroll)
+			p.t = (p.t & 0x8FFF) | ((uint16(value) & 0x07) << 12)
+			p.t = (p.t & 0xFC1F) | ((uint16(value) & 0xF8) << 2)
+			p.w = 0
+		}
+		
+	case 0x6: // PPUADDR ($2006)
+		if p.w == 0 {
+			// First write (high byte)
+			p.t = (p.t & 0x80FF) | ((uint16(value) & 0x3F) << 8)
+			p.w = 1
+		} else {
+			// Second write (low byte)
+			p.t = (p.t & 0xFF00) | uint16(value)
+			p.v = p.t
+			p.w = 0
+		}
+		
+	case 0x7: // PPUDATA ($2007)
+		p.writePPUData(value)
+		// Auto-increment address
+		p.incrementVRAMAddress()
+	}
+}
+
+// readPPUData reads data from the current VRAM address
+func (p *PPU) readPPUData() uint8 {
+	address := p.v & 0x3FFF
+	
+	// Handle different memory regions
+	if address < 0x2000 {
+		// Pattern tables
+		return p.VRAM[address]
+	} else if address < 0x3F00 {
+		// Nametables (with mirroring)
+		return p.VRAM[address]
+	} else {
+		// Palette RAM
+		paletteAddress := address & 0x1F
+		// Handle palette mirroring
+		if paletteAddress >= 16 && paletteAddress%4 == 0 {
+			paletteAddress -= 16
+		}
+		return p.Palette[paletteAddress]
+	}
+}
+
+// writePPUData writes data to the current VRAM address
+func (p *PPU) writePPUData(value uint8) {
+	address := p.v & 0x3FFF
+	
+	// Handle different memory regions
+	if address < 0x2000 {
+		// Pattern tables (usually ROM, but allow writing for testing)
+		p.VRAM[address] = value
+	} else if address < 0x3F00 {
+		// Nametables (with mirroring)
+		p.VRAM[address] = value
+	} else {
+		// Palette RAM
+		paletteAddress := address & 0x1F
+		// Handle palette mirroring
+		if paletteAddress >= 16 && paletteAddress%4 == 0 {
+			paletteAddress -= 16
+		}
+		p.Palette[paletteAddress] = value
+	}
+}
+
+// incrementVRAMAddress increments the VRAM address based on PPUCTRL
+func (p *PPU) incrementVRAMAddress() {
+	// Increment by 32 if bit 2 of PPUCTRL is set, otherwise by 1
+	if (p.PPUCTRL & 0x04) != 0 {
+		p.v += 32
+	} else {
+		p.v += 1
+	}
+	p.v &= 0x3FFF // Keep address within 14-bit range
 }
 
 // Step advances the PPU by one cycle
 func (p *PPU) Step() {
-	// TODO: Implement PPU cycle emulation
+	// Pre-render scanline (-1 or 261)
+	if p.Scanline == 261 {
+		// Clear VBlank flag at dot 1 of pre-render scanline
+		if p.Cycle == 1 {
+			p.PPUSTATUS &= 0x7F // Clear bit 7 (VBlank)
+			p.nmiOccurred = false
+		}
+	}
+	
+	// Visible scanlines (0-239)
+	if p.Scanline >= 0 && p.Scanline < 240 {
+		// Implement rendering here (simplified for now)
+		// This would include background and sprite rendering
+	}
+	
+	// VBlank scanlines (241-260)
+	if p.Scanline == 241 && p.Cycle == 1 {
+		// Set VBlank flag
+		p.PPUSTATUS |= 0x80 // Set bit 7
+		p.nmiOccurred = true
+		
+		// Generate NMI if enabled
+		if p.nmiOutput && p.CPU != nil {
+			p.CPU.TriggerNMI()
+		}
+		
+		// Swap front and back buffers
+		p.FrameComplete = true
+	}
 	
 	// Update cycle and scanline counters
 	p.Cycle++
@@ -69,7 +305,7 @@ func (p *PPU) Step() {
 		
 		if p.Scanline > 261 {
 			p.Scanline = 0
-			p.FrameComplete = true
+			p.FrameComplete = false
 		}
 	}
 }

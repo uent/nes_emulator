@@ -50,6 +50,12 @@ type Memory struct {
 
 	// Cartridge space: PRG ROM, PRG RAM, and mapper registers
 	ROMCartridgeSpace [ROMCartridgeMemorySize]byte
+	
+	// Reference to PPU for register access
+	PPU interface {
+		ReadRegister(address uint16) uint8
+		WriteRegister(address uint16, value uint8)
+	}
 }
 
 // New creates a new Memory instance
@@ -64,6 +70,14 @@ func New() *Memory {
 	fmt.Println("CartridgeSpace size:", (0xBFE0 + 0x2000 + 0x8000 + 0xFFFF))
 
 	return m
+}
+
+// SetPPU sets the PPU interface for register access
+func (m *Memory) SetPPU(ppu interface {
+	ReadRegister(address uint16) uint8
+	WriteRegister(address uint16, value uint8)
+}) {
+	m.PPU = ppu
 }
 
 // Reset initializes the memory to its power-on state
@@ -88,25 +102,34 @@ func (m *Memory) Reset() {
 
 // Read returns a byte from the specified memory address
 func (m *Memory) Read(address uint16) byte {
-
 	switch {
 	case address < PPURegistersStartAddress: // 0x0 - 0x1FFF
 		// Internal RAM, mirrored every 0x0800 bytes
 		return m.RAM[address%RAMSize]
+		
 	case address < APUAndIORegistersStartAddress: // 0x2000 - 0x3fff
 		// PPU registers, mirrored every 8 bytes
-		return m.PPURegisters[(0x2000-address)%PPURegistersSize]
+		if m.PPU != nil {
+			return m.PPU.ReadRegister(address)
+		}
+		return m.PPURegisters[(address-0x2000)%PPURegistersSize]
+		
 	case address < TestingMemoryStartAddress: // 0x4000 - 0x4017
 		// APU and I/O registers
 		return m.APUAndIORegisters[address-0x4000]
+		
 	case address < UnmappedCartridgeStartAddress: // 0x4018 - 0x401F
 		panic("testing memory space")
+		
 	case address < RAMCartridgeStartAddress: // 0x4020 - 0x6000
 		return m.RAMCartridgeSpace[address-0x4020]
+		
 	case address < ROMCartridgeStartAddress: // 0x6000 - 0x7FFF
 		return m.RAMCartridgeSpace[address-0x6000]
+		
 	case address <= ROMCartridgeStartAddress+ROMCartridgeMemorySize-1: // 0x8000 - 0xFFFF
 		return m.ROMCartridgeSpace[address-0x8000]
+		
 	default:
 		fmt.Printf("Invalid memory address: %x \n", address)
 		panic("Invalid memory address")
@@ -119,20 +142,31 @@ func (m *Memory) Write(address uint16, value byte) {
 	case address < PPURegistersStartAddress: // 0x0 - 0x1FFF
 		// Internal RAM, mirrored every 0x0800 bytes
 		m.RAM[address%RAMSize] = value
+		
 	case address < APUAndIORegistersStartAddress: // 0x2000 - 0x3fff
 		// PPU registers, mirrored every 8 bytes
-		m.PPURegisters[(0x2000-address)%PPURegistersSize] = value
+		if m.PPU != nil {
+			m.PPU.WriteRegister(address, value)
+		} else {
+			m.PPURegisters[(address-0x2000)%PPURegistersSize] = value
+		}
+		
 	case address < TestingMemoryStartAddress: // 0x4000 - 0x4017
 		// APU and I/O registers
 		m.APUAndIORegisters[address-0x4000] = value
+		
 	case address < UnmappedCartridgeStartAddress: // 0x4018 - 0x401F
 		panic("testing memory space")
+		
 	case address < RAMCartridgeStartAddress: // 0x4020 - 0x6000
 		m.RAMCartridgeSpace[address-0x4020] = value
+		
 	case address < ROMCartridgeStartAddress: // 0x6000 - 0x7FFF
 		m.RAMCartridgeSpace[address-0x6000] = value
+		
 	case address < ROMCartridgeStartAddress+ROMCartridgeMemorySize-1: // 0x8000 - 0xFFFF
 		m.ROMCartridgeSpace[address-0x8000] = value
+		
 	default:
 		fmt.Printf("Invalid memory address: %x \n", address)
 		panic("Invalid memory address")
@@ -164,7 +198,6 @@ func (m *Memory) WriteWord(address uint16, value uint16) {
 }
 
 func (m *Memory) ReadAddressIndirectPageBoundaryBug(address uint16) uint16 {
-
 	var addr uint16
 	if (address & 0x00FF) == 0x00FF { // Si el puntero termina en XXFF, aplica el bug
 		low := m.Read(address)

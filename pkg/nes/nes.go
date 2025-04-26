@@ -1,8 +1,7 @@
-// Package nes implements the main NES system
+// Package nes implements the NES system integration
 package nes
 
 import (
-	"github.com/example/my-golang-project/pkg/apu"
 	"github.com/example/my-golang-project/pkg/cpu"
 	"github.com/example/my-golang-project/pkg/memory"
 	"github.com/example/my-golang-project/pkg/ppu"
@@ -10,88 +9,83 @@ import (
 
 // NES represents the Nintendo Entertainment System
 type NES struct {
-	CPU     *cpu.CPU
-	PPU     *ppu.PPU
-	APU     *apu.APU
-	Memory  *memory.Memory
-	running bool
+	CPU    *cpu.CPU
+	PPU    *ppu.PPU
+	Memory *memory.Memory
+
+	// System state
+	Running bool
+	Cycles  uint64
 }
 
-// New creates a new NES instance with all components initialized
+// New creates a new NES instance
 func New() *NES {
-	mem := memory.New()
-
-	cpuInstance := cpu.NewCPU()
-	// Use the main memory system directly instead of a restricted view
-	cpuInstance.SetMemory(mem)
-
 	nes := &NES{
-		CPU:     cpuInstance,
+		CPU:     cpu.NewCPU(),
 		PPU:     ppu.NewPPU(),
-		APU:     apu.NewAPU(),
-		Memory:  mem,
-		running: false,
+		Memory:  memory.New(),
+		Running: false,
+		Cycles:  0,
 	}
+
+	// Connect components
+	nes.CPU.SetMemory(nes.Memory)
+	nes.PPU.SetCPU(nes.CPU)
+	nes.Memory.SetPPU(nes.PPU)
 
 	return nes
 }
 
-// Reset resets all components of the NES
+// Reset resets the NES to its initial state
 func (n *NES) Reset() {
 	n.Memory.Reset()
-	n.CPU.Reset()
 	n.PPU.Reset()
-	n.APU.Reset()
-	n.running = false
+	n.CPU.Reset()
+	n.Cycles = 0
 }
 
-// LoadROM loads a ROM into the NES
-func (n *NES) LoadROM(prgROM []byte) {
-	n.Memory.LoadPRGROM(prgROM)
+// LoadROM loads a ROM file into memory
+func (n *NES) LoadROM(romData []byte) error {
+	// Load PRG-ROM data directly
+	n.Memory.LoadPRGROM(romData)
+
+	return nil
 }
 
-// Step advances the NES emulation by one step
+// Step advances the NES emulation by one CPU instruction
 func (n *NES) Step() error {
-	_, err := n.CPU.Step()
+	// Execute one CPU instruction
+	cpuCycles, err := n.CPU.Step()
 	if err != nil {
 		return err
 	}
 
-	// PPU runs at 3x the speed of CPU
-	n.PPU.Step()
-	n.PPU.Step()
-	n.PPU.Step()
+	// For each CPU cycle, the PPU runs 3 cycles
+	for i := uint8(0); i < cpuCycles*3; i++ {
+		n.PPU.Step()
+	}
 
-	// APU step
-	n.APU.Step()
+	// Update total cycles
+	n.Cycles += uint64(cpuCycles)
 
 	return nil
 }
 
-// Run starts the execution of the NES after reset and ROM loading
-// It will continuously execute instructions until Stop is called or an error occurs
+// Run runs the NES emulation until stopped
 func (n *NES) Run() error {
-	n.running = true
-	for n.running {
-		if err := n.Step(); err != nil {
+	n.Running = true
+
+	for n.Running {
+		err := n.Step()
+		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
-// RunFor executes the NES for a specified number of cycles
-// Useful for testing or when precise control is needed
-func (n *NES) RunFor(cycles int) error {
-	for i := 0; i < cycles && n.running; i++ {
-		if err := n.Step(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// Stop halts the execution of the NES
+// Stop stops the NES emulation
 func (n *NES) Stop() {
-	n.running = false
+	n.Running = false
 }

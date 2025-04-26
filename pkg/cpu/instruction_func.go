@@ -1,8 +1,6 @@
 // Package cpu implements the NES CPU (6502) instruction functions
 package cpu
 
-import "fmt"
-
 // This file contains implementations for all 6502 CPU instructions
 
 type CPUOperation func(*CPU) uint8
@@ -607,7 +605,7 @@ func BEQRelative(c *CPU) uint8 {
 
 	if c.GetFlagZ() == 1 { // Si Z == 1, se ejecuta el salto
 		oldPC := c.PC + 2 // La dirección de la siguiente instrucción
-		fmt.Println("offSet", offSet)
+
 		// Calcular la nueva dirección
 		c.PC = uint16(int32(oldPC) + int32(offSet))
 		cycles++ // Un ciclo adicional por el salto
@@ -692,7 +690,7 @@ func BPLRelative(c *CPU) uint8 {
 	offSet := int8(c.Memory.Read(c.PC + 1))
 	cycles := uint8(2)
 
-	fmt.Println(c.Memory.Read(c.PC+1), offSet)
+	//fmt.Println(c.Memory.Read(c.PC+1), offSet)
 
 	if c.GetFlagN() == 0 {
 		oldPC := c.PC + 2
