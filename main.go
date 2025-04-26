@@ -11,11 +11,11 @@ import (
 
 func main() {
 	// Command line flags
-	debugMode := flag.Bool("debug", true, "Run in debug mode with UI")
+	debugMode := flag.Bool("debug", false, "Run in debug mode with UI")
 	//romPath := flag.String("rom", "roms/test_cpu_exec_space_apu.nes", "Path to ROM file")
 	//romPath := flag.String("rom", "roms/official_only.nes", "Path to ROM file")
-	//romPath := flag.String("rom", "roms/Legend of Zelda, The (USA) (Rev A).nes", "Path to ROM file")
-	romPath := flag.String("rom", "roms/cpu_dummy_reads.nes", "Path to ROM file")
+	romPath := flag.String("rom", "roms/Legend of Zelda, The (USA) (Rev A).nes", "Path to ROM file")
+	//romPath := flag.String("rom", "roms/cpu_dummy_reads.nes", "Path to ROM file")
 
 	flag.Parse()
 
@@ -52,13 +52,15 @@ func main() {
 
 	// Run in debug mode if flag is set
 	if *debugMode {
-		fmt.Println("Starting debug UI...")
+		fmt.Println("Starting debug UI with graphics...")
 		if err := debug.StartDebugger(nesSystem); err != nil {
 			fmt.Printf("Error starting debug UI: %v\n", err)
 		}
 	} else {
-		// Run in normal mode
-		fmt.Println("Running NES emulation...")
-		nesSystem.Run()
+		// Run in normal mode with game rendering
+		fmt.Println("Running NES emulation with graphics...")
+		if err := nes.StartGame(nesSystem); err != nil {
+			fmt.Printf("Error running game: %v\n", err)
+		}
 	}
 }

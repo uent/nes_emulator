@@ -1,6 +1,10 @@
 // Package ppu implements the NES Picture Processing Unit emulation
 package ppu
 
+import (
+	"image/color"
+)
+
 // PPU represents the Picture Processing Unit of the NES
 type PPU struct {
 	// PPU registers
@@ -39,8 +43,8 @@ type PPU struct {
 	readBuffer uint8
 	
 	// Rendering buffers
-	frontBuffer []uint8
-	backBuffer  []uint8
+	frontBuffer []uint8 // RGBA buffer (256x240x4)
+	backBuffer  []uint8 // RGBA buffer (256x240x4)
 	
 	// Reference to CPU for NMI triggering
 	CPU interface {
@@ -91,6 +95,38 @@ func (p *PPU) Reset() {
 	p.nmiDelay = 0
 	
 	p.readBuffer = 0
+	
+	// Initialize buffers with a recognizable pattern
+	for y := 0; y < 240; y++ {
+		for x := 0; x < 256; x++ {
+			offset := (y*256 + x) * 4
+			
+			// Create a checkerboard pattern
+			if ((x / 16) + (y / 16)) % 2 == 0 {
+				// Blue squares
+				p.frontBuffer[offset] = 0
+				p.frontBuffer[offset+1] = 0
+				p.frontBuffer[offset+2] = 255
+				p.frontBuffer[offset+3] = 255
+				
+				p.backBuffer[offset] = 0
+				p.backBuffer[offset+1] = 0
+				p.backBuffer[offset+2] = 255
+				p.backBuffer[offset+3] = 255
+			} else {
+				// White squares
+				p.frontBuffer[offset] = 255
+				p.frontBuffer[offset+1] = 255
+				p.frontBuffer[offset+2] = 255
+				p.frontBuffer[offset+3] = 255
+				
+				p.backBuffer[offset] = 255
+				p.backBuffer[offset+1] = 255
+				p.backBuffer[offset+2] = 255
+				p.backBuffer[offset+3] = 255
+			}
+		}
+	}
 }
 
 // ReadRegister reads from a PPU register
@@ -265,6 +301,51 @@ func (p *PPU) incrementVRAMAddress() {
 	p.v &= 0x3FFF // Keep address within 14-bit range
 }
 
+// GetPixel returns the color of a pixel at the specified coordinates
+func (p *PPU) GetPixel(x, y int) color.RGBA {
+	if x < 0 || x >= 256 || y < 0 || y >= 240 {
+		return color.RGBA{0, 0, 0, 255}
+	}
+	
+	offset := (y*256 + x) * 4
+	return color.RGBA{
+		p.frontBuffer[offset],
+		p.frontBuffer[offset+1],
+		p.frontBuffer[offset+2],
+		p.frontBuffer[offset+3],
+	}
+}
+
+// calculatePixelColor determines the color for the current pixel
+func (p *PPU) calculatePixelColor() uint8 {
+	// Simplified implementation - just for testing
+	// In a real implementation, this would involve checking background and sprite priorities
+	
+	// If rendering is disabled, return the background color
+	if p.PPUMASK&0x08 == 0 && p.PPUMASK&0x10 == 0 {
+		return p.Palette[0] & 0x3F
+	}
+	
+	// For now, just return a test pattern
+	x := p.Cycle - 1
+	y := p.Scanline
+	
+	// Create a more visible test pattern
+	patternX := (x / 16) % 2
+	patternY := (y / 16) % 2
+	
+	if (patternX + patternY) % 2 == 0 {
+		return 0x21 // Blue
+	} else {
+		return 0x30 // White
+	}
+}
+
+// SwapBuffers swaps the front and back buffers
+func (p *PPU) SwapBuffers() {
+	p.frontBuffer, p.backBuffer = p.backBuffer, p.frontBuffer
+}
+
 // Step advances the PPU by one cycle
 func (p *PPU) Step() {
 	// Pre-render scanline (-1 or 261)
@@ -278,8 +359,22 @@ func (p *PPU) Step() {
 	
 	// Visible scanlines (0-239)
 	if p.Scanline >= 0 && p.Scanline < 240 {
-		// Implement rendering here (simplified for now)
-		// This would include background and sprite rendering
+		// Visible pixel
+		if p.Cycle >= 1 && p.Cycle <= 256 {
+			x := p.Cycle - 1
+			y := p.Scanline
+			
+			// Calculate the color for this pixel
+			colorIndex := p.calculatePixelColor()
+			color := GetColor(colorIndex)
+			
+			// Set the pixel in the back buffer
+			offset := (y*256 + x) * 4
+			p.backBuffer[offset] = color.R
+			p.backBuffer[offset+1] = color.G
+			p.backBuffer[offset+2] = color.B
+			p.backBuffer[offset+3] = 255 // Full opacity
+		}
 	}
 	
 	// VBlank scanlines (241-260)
@@ -294,6 +389,7 @@ func (p *PPU) Step() {
 		}
 		
 		// Swap front and back buffers
+		p.SwapBuffers()
 		p.FrameComplete = true
 	}
 	

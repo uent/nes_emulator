@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	screenWidth  = 1024
+	screenWidth  = 600  // Reduced width to make room for PPU output
 	screenHeight = 768
 	padding      = 20
 	lineHeight   = 20
@@ -352,5 +352,5 @@ func (d *CPUDebugger) formatFlags(cpu *cpu.CPU) string {
 
 // Layout implements the ebiten.Game interface
 func (d *CPUDebugger) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return screenWidth, screenHeight
+	return 600, screenHeight
 }

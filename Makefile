@@ -29,6 +29,10 @@ run:
 	@echo "Running main application..."
 	$(GORUN) main.go
 
+dev:
+	@echo "Running main application in dev mode..."
+	$(GORUN) main.go -debug
+
 # Run the app in cmd/app directory
 run-app:
 	@echo "Running app in cmd/app directory..."
