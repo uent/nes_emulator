@@ -625,7 +625,8 @@ func BEQRelative(c *CPU) uint8 {
 
 // BIT - Bit Test
 func BITZero(c *CPU) uint8 {
-	memory_value := c.Memory.Read(c.PC + 1)
+	zeroPageAddr := uint16(c.Memory.Read(c.PC + 1))
+	memory_value := c.Memory.Read(zeroPageAddr)
 	result := c.A & memory_value
 
 	c.setFlagZByValue(result)
@@ -634,6 +635,19 @@ func BITZero(c *CPU) uint8 {
 
 	c.MovePC(2)
 	return 3 // cycles 3
+}
+
+func BITAbsolute(c *CPU) uint8 {
+	PageAddr := uint16(c.Memory.ReadWord(c.PC + 1))
+	memory_value := c.Memory.Read(PageAddr)
+	result := c.A & memory_value
+
+	c.setFlagZByValue(result)
+	c.setFlagNByValue(memory_value)
+	c.setFlagVByValue(memory_value)
+
+	c.MovePC(3)
+	return 4 // cycles 4
 }
 
 // BNE - Branch if Not Equal (Z=0)
@@ -678,17 +692,19 @@ func BPLRelative(c *CPU) uint8 {
 	offSet := int8(c.Memory.Read(c.PC + 1))
 	cycles := uint8(2)
 
+	fmt.Println(c.Memory.Read(c.PC+1), offSet)
+
 	if c.GetFlagN() == 0 {
 		oldPC := c.PC + 2
-		c.PC = uint16(int32(oldPC) + int32(offSet))
+		c.PC = uint16(int16(oldPC) + int16(offSet))
 		cycles++
 
-		// ✅ Si el salto cruza una página, agregar un ciclo extra
+		// Si el salto cruza una página, agregar un ciclo extra
 		if (oldPC & 0xFF00) != (c.PC & 0xFF00) {
 			cycles++
 		}
 	} else {
-		c.MovePC(2)
+		c.PC += 2 // Consistente con la modificación directa de PC
 	}
 
 	return cycles

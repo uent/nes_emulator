@@ -58,7 +58,7 @@ var InstructionTable = map[byte]Instruction{
 
 	// BIT
 	0x24: {0x24, "BIT", false, BITZero},
-	0x2C: {0x2C, "BIT", false, nil},
+	0x2C: {0x2C, "BIT", false, BITAbsolute},
 
 	// ROL
 	0x26: {0x26, "ROL", false, nil},
